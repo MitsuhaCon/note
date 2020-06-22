@@ -108,3 +108,5 @@ Class clazz = object.getClass();
 ```
 
 **通过反射获取私有属性，方法和构造方法时，需要进行暴力反射，设置setAccessible(true)**。否则会报错说无法获取私有属性，方法和构造方法。**带有Declared修饰的方法可以反射到私有的方法，没有Declared修饰的只能用来反射公有的方法**。
+
+添加了ssh
