@@ -147,7 +147,7 @@ git pull origin  marster
 $ ssh-keygen -t rsa -C git@github.com:MitsuhaCon/Learn_Git.git
 注意：这里-C是大写的
 进入.ssh 目录查看文件列表
-cd .ssh
+cd ~/.ssh
 ls -lF
 查看id_rsa.pub文件内容
 cat id_rsa.pub
