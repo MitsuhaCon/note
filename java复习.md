@@ -619,3 +619,305 @@ Iterator是工作在一个独立的线程中，并且拥有一个 mutex 锁。 I
 所以 Iterator 在工作的时候是不允许被迭代的对象被改变的。但你可以使用 Iterator 本身的方法remove()来删除对象，Iterator.remove() 方法会在删除当前迭代对象的同时维护索引的一致性。*/
 ```
 
+# 8 注解
+
+注解的本质就是一个继承了Annotation接口的接口。解析一个类或者方法的注解往往有两种形式，一种是编译期直接的扫描，一种是运行期反射。
+
+> **一个注解准确意义上来说，只不过是一种特殊的注释而已，如果没有解析它的代码，它可能连注释都不如。**
+
+**注解的用途**
+
+1. 生成文档，通过代码里标识的元数据生成javadoc文档。
+2. 编译检查，通过代码里标识的元数据让编译器在编译期间进行检查验证。
+3. 编译时动态处理，编译时通过代码里标识的元数据动态处理，例如动态生成代码。
+4. 运行时动态处理，运行时通过代码里标识的元数据动态处理，例如使用反射注入实例
+
+**注解的分类**
+
+1. Java自带的标准注解，包括@Override（标明重写某个方法）、@Deprecated（标明某个类或方法过时）和@SuppressWarnings（标明要忽略的警告），使用这些注解后编译器就会进行检查
+2. 元注解，元注解是用于定义注解的注解，包括@Retention（标明注解被保留的阶段）、@Target（标明注解使用的范围）、@Inherited（标明注解可继承）、@Documented（标明是否生成javadoc文档）
+3. 自定义注解，可以根据自己的需求定义注解
+   
+
+**元注解**
+
+1. **@Retention**
+
+   ```java
+   @Documented
+   @Retention(RetentionPolicy.RUNTIME)
+   @Target(ElementType.ANNOTATION_TYPE)
+   public @interface Retention {
+       /**
+        * Returns the retention policy.
+        * @return the retention policy
+        */
+       RetentionPolicy value();
+   }
+   ```
+
+   
+
+   保留期，@Retention应用到一个注解上的时候，它解释说明了这个注解的存活时间。取值如下：
+
+   - RetentionPolicy.SOURCE   注解只在原码阶段保留，在编译器进行编译时它将丢弃忽视。
+   - RetentionPolicy.CLASS  注解只被保留到编译进行的时候，它并不会加载到JVM中。这是默认行为。
+   - RetentionPolicy.RUNTIME  注解可以保留到程序运行的时候，它会被加载进入到 JVM 中，所以在程序运行时可以获取到它们。如SpringMvc中的@Controller、@Autowired、@RequestMapping等。
+
+   > **RetentionPolicy是一个枚举类**，在rt.jar包中的java.lang.annotation包下
+
+2. **@Documented**
+
+   ```java
+   @Documented
+   @Retention(RetentionPolicy.RUNTIME)
+   @Target(ElementType.ANNOTATION_TYPE)
+   public @interface Documented {
+   }
+   ```
+
+   它的作用是能够将注解中的元素包含到 Javadoc 中去
+
+3. **@Target**
+
+   ```java
+   @Documented
+   @Retention(RetentionPolicy.RUNTIME)
+   @Target(ElementType.ANNOTATION_TYPE)
+   public @interface Target {
+       /**
+        * Returns an array of the kinds of elements an annotation type
+        * can be applied to.
+        * @return an array of the kinds of elements an annotation type
+        * can be applied to
+        */
+       ElementType[] value();
+   }
+   ```
+
+   只能标注在注解类上，并指定这个注解类能运用在哪儿。取值如下：
+
+   - ElementType.ANNOTATION_TYPE 可以给一个注解进行注解
+   - ElementType.CONSTRUCTOR 可以给构造方法进行注解
+   - ElementType.FIELD 可以给属性进行注解
+   - ElementType.LOCAL_VARIABLE 可以给局部变量进行注解
+   - ElementType.METHOD 可以给方法进行注解
+   - ElementType.PACKAGE 可以给一个包进行注解
+   - ElementType.PARAMETER 可以给一个方法内的参数进行注解
+   - ElementType.TYPE 可以给一个类型进行注解，比如类、接口、枚举
+   - ElementType.TYPE_PARAMETER  (since 1.8)
+   - ElementType.TYPE_USE  (since 1.8)
+
+4. **@Inherited**
+
+   ```java
+   @Documented
+   @Retention(RetentionPolicy.RUNTIME)
+   @Target(ElementType.ANNOTATION_TYPE)
+   public @interface Inherited {
+   }
+   ```
+
+   Inherited 是继承的意思，但是它并不是说注解本身可以继承，而是说如果一个超类使用了@Inherited 注解，那么如果它的子类没有被任何注解应用的话，那么这个子类就继承了超类的注解。
+
+5. **@Repeatable**
+
+   ```java
+   @Documented
+   @Retention(RetentionPolicy.RUNTIME)
+   @Target(ElementType.ANNOTATION_TYPE)
+   public @interface Repeatable {
+       /**
+        * Indicates the <em>containing annotation type</em> for the
+        * repeatable annotation type.
+        * @return the containing annotation type
+        */
+       Class<? extends Annotation> value();
+   }
+   ```
+
+   Repeatable 自然是可重复的意思。@Repeatable 是 Java 1.8 才加进来的，所以算是一个新的特性。
+
+   Repeatable使用场景：在需要对同一种注解多次使用时，往往需要借助@Repeatable。
+
+   下面举例说明一下，在生活中一个人往往是具有多种身份，如果我把每种身份当成一种注解该如何使用
+
+举例：
+
+```java
+//先定义一个Persons类用来包含所有的身份
+@Target(ElementType.TYPE) 
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Persons {
+	Person[] value();
+}
+```
+
+```java
+//再定义一个Person注解,@Repeatable括号内的就相当于用来保存该注解内容的容器。
+@Repeatable(Persons.class)
+public @interface Person {
+    String role() default "";
+}
+```
+
+```java
+//声明一个Man类，给该类加上一些身份
+@Person(role="CEO")
+@Person(role="husband")
+@Person(role="father")
+@Person(role="son")
+public class Man {
+	String name="";
+}
+```
+
+```java
+//在main方法中访问该注解
+public static void main(String[] args) {
+    Annotation[] annotations = Man.class.getAnnotations();  
+    System.out.println(annotations.length);
+    Persons p1=(Persons) annotations[0];
+    for(Person t:p1.value()){
+    	System.out.println(t.role());
+    }
+}
+```
+
+**注解的属性**
+
+注解的属性也叫做成员变量。注解只有成员变量，没有方法。注解的成员变量在注解的定义中以“无形参的方法”形式来声明，其方法名定义了该成员变量的名字，其返回值定义了该成员变量的类型。
+
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface TestAnnotation{
+    int id();
+    String msg();
+}
+```
+
+## 注解不支持继承
+
+不能用extends来继承某个@interface，但注解在编译后，编译器会自动继承java.lang.annotation.Annotation
+
+## JAVA预置的注解
+
+| 注解                 | 描述                     |
+| -------------------- | ------------------------ |
+| @Deprecated          | 给出过时警告             |
+| @Override            | 方法覆盖                 |
+| @SuppressWarnings    | 压制警告                 |
+| @SafeVarargs         | 压制可变长参数报出的警告 |
+| @FunctionalInterface | 函数式接口注解           |
+
+# 9 Lambda
+
+- 有且只有一个抽象方法的接口被称为函数式接口。
+- 只有函数式接口才可以转换为lambda表达式。
+
+- 函数式接口可以显式的被@FunctionalInterface所标识。
+
+**案例1**  无参无返回
+
+```java
+//定义一个函数式接口
+public interface TestLambda {
+    void test();
+}
+
+//定义一个测试类
+public class Test {
+    public static void main(String[] arg) {
+        //匿名方式
+        TestLambda t = new TestLambda() {
+            @Override
+            public void test() {
+                System.out.println("sdf");
+            }
+        };
+        
+        //lambda方式
+        //无参无返回Lambda表达式
+		TestLambda testLambda1 = () -> {System.out.println("你的名字");};
+        //如果只有一行代码可以省略花括号
+        TestLambda testLambda2 = () -> System.out.println("你的名字");
+    }
+}
+```
+
+**案例2**  有参有返回值
+
+```java
+public class Test {
+    public static void main(String[] arg) {
+        //有参无返回
+    	TestLambda1 testLambda = (String string) -> System.out.println("你的名字");
+        //参数类型可以省略
+        TestLambda2 testLambda = (string) -> System.out.println("你的名字");
+        //多个参数
+        TestLambda3 testLambda = (string1,String2) -> System.out.println("你的名字");
+        //有参有返回
+        TestLambda3 testLambda = (string1,String2) -> {return "你的名字";};
+        //返回值可以不要return
+        TestLambda3 testLambda = (string1,String2) -> "你的名字";
+        
+    }
+}
+```
+
+**案例3**  final类型参数
+
+```java
+public class Test {
+    public static void main(String[] arg) {
+        //全写
+        FinalParam finalParam1 = (final int a, final int b) -> { return a + b;};
+        System.out.println(finalParam1.add(10,20));
+        //简写
+        FinalParam finalParam2 = (a, b) -> a + b;
+        System.out.println(finalParam2.add(10,20));
+    }
+}
+
+interface FinalParam {
+    int add(final int a, final int b);
+}
+```
+
+> IntelliJ IDEA中书签的使用：CTRL + F11
+
+# 10 什么是面向对象
+
+Object Oriented Programming
+
+Object Oriented Analysis
+
+Object Oriented Design
+
+面向对象其还是依赖于面向过程，只不过面向对象对面向过程进行了封装，方便我们使用。
+
+**面向过程和面向对象的区别**
+
+|      | 面向过程                                   | 面向对象               |
+| ---- | ------------------------------------------ | ---------------------- |
+| 优点 | 性能比面向对象好，因为类调用时需要实例化。 | 易维护、易复用、易扩展 |
+| 缺点 | 不易维护、不易复用、不易扩展               | 性能不如面向过程       |
+
+面向对象的三大特性五大原则
+
+1. **单一职责原则**（SRP：Single Responsibility Principle） 类的功能要单一，不能包罗万象，跟杂货铺似的
+2. **开放封闭原则**（OCP：Open-Close Principle） 一个模块对于拓展是开放的，对于修改是封闭的，想要增加功能热烈欢迎，想要修改，哼，一万个不乐意。
+3. **里氏替换原则**（LSP：the Liskov Substitution Principle）子类可以替换父类出现在父类能够出现的任何地方。
+4. **依赖倒置原则**（DIP：the Dependency Inversion Principle）高层次的模块不应该依赖于低层次的模块，他们都应该依赖于抽象。抽象不应该依赖于具体实现，具体实现应该依赖于抽象。比如你出国要说你是中国人，而不会说你是哪个村子的。中国人就是抽象，具体的省、市、县。
+5. **接口分离原则**（ISP：the Interface Segregation Principle）设计时采用多个特定客户类有关的接口比采用一个通用的接口要好。
+
+1. **封装** 隐藏对象的属性和实现细节，公对旬提供公共访问方式，将变化隔离，便于使用，提高复用性和安全性。
+2. **继承** 提高代码复用性；继承是多态的前提。
+3. **多态** 父类或接口定义的引用变量可以指向子类或具体实现类的实例对象。提高了程序的拓展性。
+
+**总结**
+
+- 抽象会使复杂的问题更加简单化
+- 从以前面向过程的执行者，变成张张嘴的指挥者
+- 面向对象更符合人类的思维，而面向过程则是机器的思想
