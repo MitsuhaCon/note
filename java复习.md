@@ -43,6 +43,49 @@
 - java中没有无符号数
 - 计算机中以整数的补码进行运算和存储
 
+1.  <<  左移    **低位补0**
+2.  &gt;&gt;  右移    **高位补符号位**
+3.  &gt;&gt;&gt; 无符号右移  **高位补0**
+
+> Integer.highestOneBit(int i)方法的作用与底层实现
+
+```java
+/**
+ * 实现原理：如果一个数字是2的幂次方数，那么它对应的二进制数只有一个bit位上是1，其它bit位都是0；
+ * 将这个数的二进制数中除最高位的1之外的其它低位都变成1，然后右移一位，两数再相减.
+ * java中int占4个字节，一个字节8位，所以一共有32位
+ * @param i
+ * @return int
+ */
+public static int highestOneBit(int i) {
+        // HD, Figure 3-1
+        i |= (i >>  1);
+        i |= (i >>  2);
+        i |= (i >>  4);
+        i |= (i >>  8);
+        i |= (i >> 16);
+        return i - (i >>> 1);
+    }
+```
+
+> 判断一个数在计算机中存储的二进制有几个
+
+```java
+private static int z(int i) {
+        int count = 0;
+
+        do {
+            if ((i & 1) == 1) {
+                ++count;
+            }
+        } while((i >>>= 1) != 0);
+
+        return count;
+    }
+```
+
+
+
 # 5 八大基本数据类型及引用数据类型
 
 - 基本数据类型
@@ -974,7 +1017,7 @@ ctrl + alt + u 查看继承图
 
 蓝线是继承，虚线是接口实现
 
-ArrayList是AbstractCollection的子类，同时实现了List接口，除此之外，还实现了三个标识型接口，RandomAccess表示实现类支持快速随机访问，Cloneable表示类支持克隆，java.io.Serializable支持序列化。
+ArrayList是AbstractCollection的子类，同时实现了List接口，除此之外，还实现了三个标识型接口，RandomAccess表示实现类支持快速随机访问(意思就是支持下脚标取数,如果对象实现了RandomAccess,那么就用随机访问,否则用iterator.使用instansof)，Cloneable表示类支持克隆(**浅拷贝对基本数据类型可以达到完全复制,但是对引用数据类型则不可以**)，java.io.Serializable支持序列化(**便于后续对多个对象进行序列化时,可以先将多个对象装在ArrayList中,再对ArrayList进行序列化,使用ObjectInputStream和ObjectOutputStream进行流操作**)。
 
 **成员变量**
 
@@ -1397,3 +1440,204 @@ public <T> T[] toArray(T[] a) {
 
 ```
 
+## 11.2 HashMap源码解析
+
+| 指标                     | JDK1.7                                                       | JDK1.8                                                       |
+| ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| 存储结构                 | 数组 + 链表                                                  | 数组 ＋ 链表 ＋红黑树                                        |
+| 初始化方式               | 单独函数：inflateTable()                                     | 直接集成到了扩容函数resize()中                               |
+| hash值计算方式           | 扰动处理 = 9 次扰动 = 4 次位运算 + ５次异或运算              | 扰动处理 = ２ 次扰动 = １次位运算 + １次异或运算             |
+| 存放数据的规则           | 无冲突时，存放数组；冲突时，存放链表                         | 无冲突时，存放数组；冲突 & 链表长度 < 8：存放单链表；冲突 & 链表长度 > 8：树化并存放红黑树 |
+| 插入数据方式             | 头插法（先讲原位置的数据移到后1位，再插入数据到该位置）      | 尾插法（直接插入到链表尾部/红黑树）                          |
+| 扩容后存储位置的计算方式 | 全部按照原来方法进行计算（即hashCode ->> 扰动函数 ->> (h&length-1)） | 按照扩容后的规律计算（即扩容后的位置=原位置 or 原位置 + 旧容量） |
+
+![](https://imgconvert.csdnimg.cn/aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL0pvdXJXb24vaW1hZ2UvbWFzdGVyL0phdmElRTklOUIlODYlRTUlOTAlODglRTYlQkElOTAlRTclQTAlODElRTglQUYlQTYlRTglQTclQTMlRTQlQjklOEJIYXNoTWFwL0hhc2hNYXAlRTclQkIlQTclRTYlODklQkYlRTUlODUlQjMlRTclQjMlQkIlRTUlOUIlQkUucG5n?x-oss-process=image/format,png)
+
+**成员变量**
+
+```java
+//默认初始化Node数组容量16
+static final int DEFAULT_INITIAL_CAPACITY = 1 << 4;
+//最大的数组容量
+static final int MAXIMUM_CAPACITY = 1 << 30;
+//默认负载因子0.75
+static final float DEFAULT_LOAD_FACTOR = 0.75f;
+//由链表转红黑树的临界值
+static final int TREEIFY_THRESHOLD = 8;
+//由红黑树转链表的临界值
+static final int UNTREEIFY_THRESHOLD = 6;
+//桶转化为树形结构的最小容量
+static final int MIN_TREEIFY_CAPACITY = 64;
+//HashMap结构修改的次数，结构修改是指更改HashMap中的映射数或以其他方式修改其内部结构(例如，rehash的修改)。该字段用于在Collection-views上快速生成迭代器。
+transient int modCount;  
+//Node数组下一次扩容的临界值，第一次为16*0.75=12（容量*负载因子）
+int threshold;
+//负载因子
+final float loadFactor;
+//map中包含的键值对的数量
+transient int size;
+//表数据，即Node键值对数组，Node是单向链表，它实现了Map.Entry接口，总是2的幂次倍
+//Node<K,V>是HashMap的内部类，实现Map.Entry<K,V>接口，HashMap的哈希桶数组中存放的键值对对象就是Node<K,V>。类中维护了一个next指针指向链表中的下一个元素。值得注意的是，当链表中的元素数量超过TREEIFY_THRESHOLD后会HashMap会将链表转换为红黑树，此时该下标的元素将成为TreeNode<K,V>,继承于LinkedHashMap.Entry<K,V>，而LinkedHashMap.Entry<K,V>是Node<K,V>的子类，因此HashMap的底层数组数据类型即为Node<K,V>。
+transient Node<K,V>[] table;
+//存放具体元素的集,可用于遍历map集合
+transient Set<Map.Entry<K,V>> entrySet;
+```
+
+**构造方法**
+
+```java
+//初始化容量以及负载因子
+public HashMap(int initialCapacity, float loadFactor) {
+    //判断初始化数组的容量大小
+    if (initialCapacity < 0)
+        throw new IllegalArgumentException("Illegal initial capacity: " +
+                                           initialCapacity);
+    if (initialCapacity > MAXIMUM_CAPACITY)
+        initialCapacity = MAXIMUM_CAPACITY;
+    //判断初始化的负载因子大小和是否为浮点型
+    if (loadFactor <= 0 || Float.isNaN(loadFactor))
+        throw new IllegalArgumentException("Illegal load factor: " +
+                                           loadFactor);
+    //初始化负载因子
+    this.loadFactor = loadFactor;
+    this.threshold = tableSizeFor(initialCapacity);
+}  
+
+//初始化容量
+public HashMap(int initialCapacity) {  
+    this(initialCapacity, DEFAULT_LOAD_FACTOR);  
+}  
+
+//默认构造方法
+public HashMap() {  
+    this.loadFactor = DEFAULT_LOAD_FACTOR; // all other fields defaulted  
+}  
+ 
+//把另一个Map的值映射到当前新的Map中
+public HashMap(Map<? extends K, ? extends V> m) {  
+    this.loadFactor = DEFAULT_LOAD_FACTOR;  
+    putMapEntries(m, false);  
+}  
+
+```
+
+- 初始容量默认为16,负载因子默认为0.75
+
+当我们自定义HashMap初始容量大小时，构造函数并非直接把我们定义的数值当做HashMap容量大小，而是把该数值当做参数调用方法tableSizeFor，然后把返回值作为HashMap的初始容量大小.
+
+```java
+//HashMap 中 table 角标计算及table.length 始终为2的幂，即 2 ^ n
+//返回大于initialCapacity的最小的二次幂数值
+static final int tableSizeFor(int cap) {
+    int n = cap - 1;
+    n |= n >>> 1;
+    n |= n >>> 2;
+    n |= n >>> 4;
+    n |= n >>> 8;
+    n |= n >>> 16;
+    return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+}
+```
+
+**静态内部类**
+
+HashMap将hash, key, value, next 已经封装到一个静态内部类Node上
+
+```java
+static class Node<K,V> implements Map.Entry<K,V> {
+    // 哈希值，HashMap根据该值确定记录的位置
+    final int hash;
+    // node的key
+    final K key;
+    // node的value
+    V value;
+    // 链表下一个节点
+    Node<K,V> next;
+
+    // 构造方法
+    Node(int hash, K key, V value, Node<K,V> next) {
+        this.hash = hash;
+        this.key = key;
+        this.value = value;
+        this.next = next;
+    }
+
+    // 返回 node 对应的键
+    public final K getKey()        { return key; }
+    // 返回 node 对应的值
+    public final V getValue()      { return value; }
+    public final String toString() { return key + "=" + value; }
+
+    public final int hashCode() {
+        return Objects.hashCode(key) ^ Objects.hashCode(value);
+    }
+
+    public final V setValue(V newValue) {
+        V oldValue = value;
+        value = newValue;
+        return oldValue;
+    }
+
+    //作用：判断2个Entry是否相等，必须key和value都相等，才返回true
+    public final boolean equals(Object o) {
+        if (o == this)
+            return true;
+        if (o instanceof Map.Entry) {
+            Map.Entry<?,?> e = (Map.Entry<?,?>)o;
+            if (Objects.equals(key, e.getKey()) &&
+                Objects.equals(value, e.getValue()))
+                return true;
+        }
+        return false;
+    }
+}
+
+```
+
+**TreeNode**
+
+继承于LinkedHashMap.Entry<k,v>,而LinkedHashMap.Entry<k,v>是Node<K,V>的子类,因此HashMap的底层数组数据类型即为Node<K,V>
+
+```java
+/**
+  * 红黑树节点 实现类：继承自LinkedHashMap.Entry<K,V>类
+  */
+static final class TreeNode<K,V> extends LinkedHashMap.Entry<K,V> {  
+
+    // 属性 = 父节点、左子树、右子树、删除辅助节点 + 颜色
+    TreeNode<K,V> parent;  
+    TreeNode<K,V> left;   
+    TreeNode<K,V> right;
+    TreeNode<K,V> prev;   
+    boolean red;   
+
+    // 构造函数
+    TreeNode(int hash, K key, V val, Node<K,V> next) {  
+        super(hash, key, val, next);  
+    }  
+
+    // 返回当前节点的根节点  
+    final TreeNode<K,V> root() {  
+        for (TreeNode<K,V> r = this, p;;) {  
+            if ((p = r.parent) == null)  
+                return r;  
+            r = p;  
+        }  
+    }
+}
+
+```
+
+```java
+// 取key的hashCode值、高位运算、取模运算
+// 在JDK1.8的实现中，优化了高位运算的算法，
+// 通过hashCode()的高16位异或低16位实现的：(h = k.hashCode()) ^ (h >>> 16)，
+// 主要是从速度、功效、质量来考虑的，这么做可以在数组table的length比较小的时候，
+// 也能保证考虑到高低Bit都参与到Hash的计算中，同时不会有太大的开销。
+static final int hash(Object key) {
+    int h;
+    return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+}
+```
+
+- 首先获取对象的hashCode()值，然后将hashCode值右移16位，然后将右移后的值与原来的hashCode做**异或**运算，返回结果。（其中h>>>16，在JDK1.8中，优化了高位运算的算法，使用了零扩展，无论正数还是负数，都在高位插入0）。
