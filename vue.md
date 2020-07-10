@@ -394,3 +394,265 @@ new Vue({
 在绑定 prop 时，prop 必须在子组件中声明。可以用修饰符指定不同的绑定类型。
 
 没有参数时，可以绑定到一个包含键值对的对象。注意此时 `class` 和 `style` 绑定不支持数组和对象。
+
+- 绑定HTML Class
+
+  - 动态切换class：
+
+  ```html
+  <div v-bind:class="{ active: isActive }"></div>
+  <!-- 上面的 active 这个 class 存在与否将取决于 isActive 的值是 true 还是 false-->
+  ```
+
+  ```html
+  <div class="static" v-bind:class="{ active: isActive, 'text-danger': hasError }"></div>
+  
+  data: {
+    isActive: true,
+    hasError: false
+  }
+  <!-- v-bind:class 打住也可以与普通的 class attribute 共存-->
+  <!-- 结果渲染为：-->
+  <div class="static active">
+      
+  </div>
+  ```
+
+  ```html
+  <div v-bind:class="classObject"></div>
+  
+  data: {
+  	isActive: true,
+  	error: null
+  },
+  computed: {
+  	classObject: function () {
+  		return {
+  			active: this.isActive && !this.error,
+  			'text-danger': this.error && this.error.type === 'fatal'
+  		}
+  	}
+  }
+  
+  <!-- 计算后相当于-->
+  <div v-bind:class="active: true, 'text-danger': false"></div>
+  ```
+
+  ```html
+  <div v-bind:class="[activeClass, errorClass]"></div>
+  
+  data: {
+    activeClass: 'active',
+    errorClass: 'text-danger'
+  }
+  
+  <!-- 渲染为-->
+  <div class="active text-danger"></div>
+  
+  <!-- 如果你也想根据条件切换列表中的 class，可以用三元表达式：-->
+  <div v-bind:class="[isActive ? activeClass : '']"></div>
+  <!-- 是否渲染 activeClass 取决于 isActive 的值是 true 还是 false -->
+  ```
+
+## 2.10 v-model
+
+**v-model** 随表彰控件类型不同面不同，在表彰控件或者组件上创建双向绑定。**v-model** 指令可以用在 `<input> ` 、`<textarea>` 、 `select` 元素上创建双向数据绑定。
+
+> `v-model` 会忽略所有表单元素的 `value`、`checked`、`selected` attribute 的初始值而总是将 Vue 实例的数据作为数据来源。你应该通过 JavaScript 在组件的 `data` 选项中声明初始值。
+
+**v-model** 在内部为不同的输入元素使用不同的 property 并抛出不同的事件：
+
+- text 和 textarea 元素使用 `value` property 和 `input` 事件
+- checkbox 和 radio 使用 `checked` property 和 `change` 事件
+- select 字段将 `value` 作为 prop 并将 change 作为事件
+
+```html
+<input type="text" v-model="msg" placeholder="edit it">
+<p>
+    Message :{{msg}}
+</p>
+
+data: {
+	msg: ""
+}
+```
+
+```html
+<!-- 单个复选框-->
+<input type="checkbox" id="checkbox" v-model="checked">
+<label for="checkbox">{{ checked }}</label>
+
+data: {
+	checked: false
+}
+```
+
+```html
+<!-- 多个复选框-->
+<input type="checkbox" id="jack" value="Jack" v-model="checkedNames">
+<label for="jack">Jack</label>
+<input type="checkbox" id="john" value="John" v-model="checkedNames">
+<label for="john">John</label>
+<input type="checkbox" id="mike" value="Mike" v-model="checkedNames">
+<label for="mike">Mike</label>
+<br>
+<span>Checked names: {{ checkedNames }}</span>
+
+data: {
+	checkedNames: []
+}
+```
+
+```html
+<!-- 单选按钮， 绑定的是 value 值-->
+<input type="radio" id="one" value="one" v-model="picked"/>
+<lable for="one">One</lable>
+<input type="radio" id="two" value="two" v-model="picked"/>
+<lable for="two">Two</lable>
+<span> Picked: {{picked}} </span>
+
+data: {
+	picked: ""
+}
+```
+
+```html
+<!-- 选择框  只能单选-->
+<select v-model="selected">
+    <option disable value='' >请选择</option>
+    <option value='qh'>青海</option>
+    <option value='sh'>上海</option>
+    <option value="cd">成都</option>
+ </select>
+ <span>Selected: {{ selected }}</span>
+
+data: {
+	selected: ''
+}
+<!-- 选择框多选时-->
+<select v-model="selected" multiple>
+    <option disable value='' >请选择</option>
+    <option value='qh'>青海</option>
+    <option value='sh'>上海</option>
+    <option value="cd">成都</option>
+ </select>
+ <span>Selected: {{ selected }}</span>
+
+data: {
+	selected: []
+}
+```
+
+```html
+<!-- 使用 v-for 动态生成 option-->
+<select v-bind="selected" multiple>
+	<option v-for=(option in options) v-bind:value="option.value">
+		{{option.text}}
+	</option>
+</select>
+<span>Selected: {{ selected }}</span>
+
+data: {
+	selected: "",
+	options: [
+		{text: 'a', value: 'a'},
+		{text: 'b', value: 'b'},
+		{text: 'c', value: 'c'}
+	]
+}
+```
+
+**修饰符**
+
+- `.lazy` 在默认情况下， `v-model` 在每次 `input` 事件触发后将输入框的数据进行同步，你可以添加 `lazy` 修饰符，从而转为在 `change` 事件_之后_进行同步：
+
+  ```html
+  <input type="text" v-model.lazy="msg"/>
+  
+  data: {
+  	msg: ""
+  }
+  ```
+
+- `.number` 如果想自动将用户的输入值转为数值类型，可以给 `v-model` 添加 `number` 修饰符： 
+
+  ```html
+  <input type="number" v-model.number="msg"/>
+  
+  data: {
+  	msg: ""
+  }
+  ```
+
+- `.trim`  如果要自动过滤用户输入的首尾空白字符，可以给 `v-model` 添加 `trim` 修饰符：
+
+  ```html
+  <input type="text" v-model.trim="msg">
+  ```
+
+> **修饰符可以连用**  例如： .number.lazy  转换成数字并转为 change 事件
+
+## 2.11 v-slot  组件》后续再学习并做笔记
+
+**v-solt** 
+
+## 2.12 v-pre
+
+**v-pre** 不需要表达式，跳过这个元素和它的子元素的编译过程。可以用来显示原始 Mustache 标签。跳过大量没有指令的节点会加快编译。
+
+```html
+<span v-pre>{{ this will not be compiled }}</span>
+```
+
+## 2.13 v-cloak
+
+**v-cloak** 不需要表达式，这个指令保持在元素上直到关联实例结束编译。和 CSS 规则如 `[v-cloak] { display: none }` 一起用时，这个指令可以隐藏未编译的 Mustache 标签直到实例准备完毕。
+
+```html
+<div v-cloak>
+    {{ msg }}
+</div>
+
+<!-- 定义样式-->
+[v-cloak] {
+	display: none;
+}
+<!-- 当网速等原因，渲染页面很慢时，不出在页面上出现 {{ msg }} -->
+```
+
+## 2.14 v-once
+
+**v-once** 不需要表达式，只渲染元素和组件**一次**。随后的重新渲染，元素/组件及其所有的子节点将被视为静态内容并跳过。这可以用于优化更新性能。
+
+# 3 组件基础
+
+**基本示例**
+
+```js
+//定义一个全局的名为 button-counter 的新组件
+Vue.component('button-counter', {
+    data: function () {
+        return {
+            count: 0
+        }
+    },
+    template: '<button @click="count++">You clicked me {{ count }} times </button>'
+})
+```
+
+组件是可复用的 Vue 实例，且带有一个名字： 在基本示例中是  `<button-counter>` 。我们可以在  `一个通过 new Vue 创建的 Vue ` 根实例中，把这个组件作为自定义元素使用：
+
+```html
+<div id="components-demo">
+  <button-counter></button-counter>
+</div>
+```
+
+```js
+new Vue({
+    el: '#components-demo'
+})
+```
+
+**组件的复用**
+
