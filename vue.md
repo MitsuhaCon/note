@@ -624,9 +624,15 @@ data: {
 
 **v-once** 不需要表达式，只渲染元素和组件**一次**。随后的重新渲染，元素/组件及其所有的子节点将被视为静态内容并跳过。这可以用于优化更新性能。
 
+# 加油站
+
+> padStart(一共多少位，‘填充内容’)
+>
+> ”bc".padStart(3, "a")  =>   "abc"     填充成3位，不足时，用a填充
+
 # 3 组件基础
 
-**基本示例**
+## 3.1 基本示例
 
 ```js
 //定义一个全局的名为 button-counter 的新组件
@@ -654,5 +660,210 @@ new Vue({
 })
 ```
 
-**组件的复用**
+## 3.2 组件的复用
 
+```html
+<div id="components-demo">
+  <button-counter></button-counter>
+  <button-counter></button-counter>
+  <button-counter></button-counter>
+</div>
+```
+
+当点击按钮时，每个 button-counter 组件都会各自维护它的 count 。
+
+## 3.3 data 必须是一个函数
+
+```js
+data: function () {
+    return {
+        count: 0
+    }
+}
+```
+
+## 3.4 组件的组织
+
+分为 **全局注册** 和 **局部注册**
+
+通过 Vue.component 属于全局注册。
+
+## 3.5 通过 Prop 向子组件传递数据
+
+prop 是在组件上注册一些自定义的 attribute。
+
+```js
+Vue.component("blog-post", {
+	props: ["title"],
+    template: "<h2> {{ title}} </h2>"
+})
+```
+
+```html
+<blog-post title="你的名字"></blog-post>
+<blog-post title="天气之子"></blog-post>
+```
+
+也可以通过data进行操作
+
+```js
+new Vue({
+    data: {
+		posts: [
+    		{ id: 1, title: "你的名字"}，
+            { id: 2, title: "天气之子"}
+    	]
+    }	
+}) 
+```
+
+```html
+<blog-post v-for={ post in posts} :title="post.title} 
+           :key=“post.id”></blog-post>
+```
+
+****
+
+## 3.6 单个根元素
+
+在 templata 中定义元素时，多个元素必须有同一个根元素，every component must have a single root element
+
+```js
+Vue.component("blog-post", {
+    props: ["post"],
+    template: '
+    	<div class="blog-post">
+  			<h3>{{ post.title }}</h3>
+  			<div v-html="post.content"></div>
+		</div>
+    '
+})
+```
+
+# 4 可复用性&列表组合
+
+## 4.1 自定义指令
+
+- **全局自定义指令**
+
+  ```js
+  //在定义的时候不用加 v-，但是在使用的时候才要加 v-
+  Vue.directive("focus", {
+      inserted: function (el) {
+          el.focus()
+      }
+  })
+  ```
+
+- **局部自定义指令**
+
+  ```js
+  new Vue({
+      directives: {
+          focus: {
+              inserted: function (el) {
+                  el.focus()
+              }
+          }
+      }
+  })
+  ```
+
+## 4.2 钩子函数
+
+**钩子函数**
+
+- **bind**：每当指令绑定到元素上的时候，会立即执行这个 bind 函数，只执行一次。
+
+  > ​	注意：在每个函数中，第一个参数，永远是 el ，表示被绑定了指令的那个元素，这个 el 参数，是一个原生的 js 对象，在元素刚绑定了指令的时候，还没有插入到 DOM 中去，所以这个时候调用原生 DOM 对象的函数是**不会生效**的，但是给元素添加样式，则会生效。
+
+- **inserted**：表示元素插入到 DOM 中的时候，会执行 inserted 函数（只触发一次）
+
+- **updated**：当 VNode 更新时，会执行 updated ，可以多次触发。
+
+- **componentUpdated**：指令所在组件的 VNode 及其子 VNode 全部更新后调用
+
+- **unbind**：只调用一次，指令与元素解绑时调用
+
+**钩子函数参数**
+
+- `el`：指令所绑定的元素，可以用来直接操作 DOM。
+- `binding`：一个对象，包含以下 property：
+  - `name`：指令名，不包括 `v-` 前缀。
+  - `value`：指令的绑定值，例如：`v-my-directive="1 + 1"` 中，绑定值为 `2`。
+  - `oldValue`：指令绑定的前一个值，仅在 `update` 和 `componentUpdated` 钩子中可用。无论值是否改变都可用。
+  - `expression`：字符串形式的指令表达式。例如 `v-my-directive="1 + 1"` 中，表达式为 `"1 + 1"`。
+  - `arg`：传给指令的参数，可选。例如 `v-my-directive:foo` 中，参数为 `"foo"`。
+  - `modifiers`：一个包含修饰符的对象。例如：`v-my-directive.foo.bar` 中，修饰符对象为 `{ foo: true, bar: true }`。
+- `vnode`：Vue 编译生成的虚拟节点。移步 [VNode API](https://cn.vuejs.org/v2/api/#VNode-接口) 来了解更多详情。
+- `oldVnode`：上一个虚拟节点，仅在 `update` 和 `componentUpdated` 钩子中可用。
+
+**函数简写**
+
+在很多时候，你可能想在 `bind` 和 `update` 时触发相同行为，而不关心其它的钩子。比如这样写：
+
+```js
+Vue.directive('color-swatch', function (el, binding) {
+  el.style.backgroundColor = binding.value
+})
+```
+
+**对象字面量**
+
+如果指令需要多个值，可以传入一个 JavaScript 对象字面量。记住，指令函数能够接受所有合法的 JavaScript 表达式。
+
+```js
+Vue.direction("demo", function(el, binding){
+    console.log(binding.value.color)
+    console.log(binding.value.text)
+})
+```
+
+```html
+<div v-demo="{color: 'blue', text: 'hello'}">
+    
+</div>
+```
+
+# 5 生命周期
+
+![](https://cn.vuejs.org/images/lifecycle.png)
+
+- **new Vue()**：表示开始创建一个 Vue 的实例对象
+
+- **Init Events & Lifecycle**：表示刚初始化了一个 Vue 实例对象，这时候 Vue 对象只有一些默认的生命周期函数和事件，其它东西都未创建
+
+  **beforeCreate**：在beforeCreate生命周期函数执行时，Vue对象中的 data 和 methods 中的数据都还没有初始化。所以在 beforeCreate中调用，是无效的。
+
+- **Init injections & reactivity**：开始初始化 data、methods 等
+
+  **created**：这是第二个创建阶段生命周期函数，在 created 中，data 和 methods 都已经被初始化好了
+
+  > 要想要操作 data 中的数据或调用 methods 中的方法，最早只能在 created 中操作
+
+  **beforeMount**：这是第三个创建阶段生命周期函数，表示模板已经在内存中编译完成了，但是尚未把模板挂载到页面中去。
+
+  > 比如页面中的 {{ msg }} 是没有渲染成真实的值的
+
+- **Created vm.$el and replace "el" with it**：将内存中编译好的模板真实的替换到浏览器的页面中
+
+  **mounted**：最后一个创建阶段生命周期函数，当执行完 mounted 就表示实例 Vue() 实例被完全创建好了。
+
+> 如果要通过藉此插件操作页面上的 DOM 节点，最早在 mounted 中进行
+
+> 只要执行完了 mounted ,就表示整个 Vue 实例已经初始化完毕了。此时组件已经脱离了**创建阶段**，进入到了**运行阶段**。
+
+当进行运行阶段的时候，可能会触发两个函数，
+
+**beforeUpdated** 和  **updated**
+
+这两个函数会在数据改变时触发，有选择性的触发 0 次或 多次。
+
+- **beforeUpdated**：当执行了 beforeUpdated 时，页面中显示的数据还是**旧的**，但是 data 中的数据是**最新的**。
+
+- **updated**：页面和 data 中的数据已经保持同步了
+
+**销毁阶段**
+
+- **beforeDestory**：当执行 beforeDestory 钩子函数时，Vue 实例已经从运行阶段进入了销毁阶段；实例身上所有的属性处于可用状态。
+- **destoryed**：实例身上所有的属性都不可用。
