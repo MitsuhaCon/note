@@ -457,8 +457,9 @@ new Vue({
 ## 2.10 v-model
 
 **v-model** 随表单控件类型不同面不同，在表单控件或者组件上创建双向绑定。**v-model** 指令可以用在 `<input> ` 、`<textarea>` 、 `select` 元素上创建双向数据绑定。
-=======
+
 **v-model** 随表单控件类型不同面不同，在表彰控件或者组件上创建双向绑定。**v-model** 指令可以用在 `<input> ` 、`<textarea>` 、 `select` 元素上创建双向数据绑定。
+
 > `v-model` 会忽略所有表单元素的 `value`、`checked`、`selected` attribute 的初始值而总是将 Vue 实例的数据作为数据来源。你应该通过 JavaScript 在组件的 `data` 选项中声明初始值。
 
 **v-model** 在内部为不同的输入元素使用不同的 property 并抛出不同的事件：
@@ -635,8 +636,33 @@ data: {
 
 ## 3.1 基本示例
 
+什么是组件：组件的出现，就是为了拆分 vue 实例的代码量的，能够让我们以不同的组件，来划分不同的功能模块，将来我们需要什么样的功能，就可以去调用对应的即可。
+
+> 组件化和模块化的不同：
+>
+> 模块化： 是从代码逻辑的角度进行划分的，方便腻友分层开发，保证每个功能模块的职能单一
+>
+> 组件化： 是从 UI 界面的角度进行划分的，前端的组件化，方便 UI 组件的复用
+
+**第一种方式创建组件**
+
 ```js
-//定义一个全局的名为 button-counter 的新组件
+// 通过 Vue.extend 定义一个全局的模板对象 demo1
+var demo1 = Vue.extend({
+    template: '<h2>这是一个使用 Vue.extend 创建的组件</h2>'
+})
+
+// 使用 Vue.component('组件名称', 创建出来的组件模板对象)
+// Vue.component 中组件名称如果使用了 驼峰命名，则在引用组件时，在写的驼峰改为小写，同时，两个单词之间使用 `-` 连接
+Vue.component('button-coonter', demo1)
+```
+
+**第二种方式创建组件**
+
+```js
+//通过 Vue.component 定义一个全局的名为 button-counter 的新组件,
+// 注册组件，传入一个选项对象 (自动调用 Vue.extend)
+//Vue.component('my-component', { /* ... */ })
 Vue.component('button-counter', {
     data: function () {
         return {
@@ -645,7 +671,54 @@ Vue.component('button-counter', {
     },
     template: '<button @click="count++">You clicked me {{ count }} times </button>'
 })
+
+
 ```
+
+**第三种方式创建组件**
+
+```html
+<div id="app">
+    <my-demo3></my-demo3>
+</div>
+
+<template id="tmp">
+    <!-- 模板中只能有一个根节点，其它元素都必须放在这个根节点下面 -->
+	<div>
+        <h1>
+            这是一个通过 template 元素，在外部定义的组件结构，这个方式有代码提示和高亮
+        </h1>
+        <h2>
+            好用得很
+        </h2>
+    </div>
+</template>
+```
+
+```js
+Vue.component('my-demo3',{
+    template: '#tmp'
+})
+```
+
+**也可以是局部组件**
+
+```js
+new Vue({
+    components: {
+        demo: {
+            data: function() {
+                return {
+                	msg: '这是组件里的 data 定义的数据'
+                }
+            }
+        },
+        template: ''
+    }
+})
+```
+
+
 
 组件是可复用的 Vue 实例，且带有一个名字： 在基本示例中是  `<button-counter>` 。我们可以在  `一个通过 new Vue 创建的 Vue ` 根实例中，把这个组件作为自定义元素使用：
 
@@ -674,6 +747,10 @@ new Vue({
 当点击按钮时，每个 button-counter 组件都会各自维护它的 count 。
 
 ## 3.3 data 必须是一个函数
+
+> 为什么组件中的 data 必须是一个函数？
+>
+> 为了保证每个组件独有一个自己的返回对象
 
 ```js
 data: function () {
@@ -740,6 +817,67 @@ Vue.component("blog-post", {
     '
 })
 ```
+
+## 3.7 组件的切换
+
+实现两个组件的切换
+
+```html
+<div id="app">
+    <a href="#" @:click.prevent="flag=true">登录</a>
+    <a href="#" @:click.prevent="falg=false">注册</a>
+    <login v-if="flag"></login>
+    <register v-else="flag"></register>
+</div>
+
+<script>
+	Vue.component("login", {
+        template: '<h3>登录组件</h3>'
+    })
+    
+    Vue.component("register", {
+        template: '<h3>注册组件</h3>'
+    })
+    
+    new Vue({
+        el: '#app',
+        data: {
+            flag: true
+        }
+    })
+</script>
+```
+
+**通过 vue 提供的 component 元素实现组件切换**
+
+```html
+<div id="app">
+    <a href="#" @:click.prevent="componentID=login">登录</a>
+    <a href="#" @:click.prevent="componentID=register">注册</a>
+    <!-- component 是一个点位符， :is 属性可以用来指定要展示的组件名称-->
+    <component :is="componentID"></component>
+</div>
+
+<script>
+	Vue.component("login", {
+        template: '<h3>登录组件</h3>'
+    })
+    
+    Vue.component("register", {
+        template: '<h3>注册组件</h3>'
+    })
+    
+    new Vue({
+        el: '#app',
+        data: {
+            componentID: 'login'
+            flag: true
+        }
+    })
+</script>
+```
+
+
 
 # 4 可复用性&列表组合
 
@@ -868,3 +1006,37 @@ Vue.direction("demo", function(el, binding){
 
 - **beforeDestory**：当执行 beforeDestory 钩子函数时，Vue 实例已经从运行阶段进入了销毁阶段；实例身上所有的属性处于可用状态。
 - **destoryed**：实例身上所有的属性都不可用。
+
+# 6 vue-resource
+
+导入 `vue-resource` 的 js 文件，可以直接去 `github` 上去搜索 `vue-resource` 
+
+ `vue-resource` 是依赖于 `vue.js` 的，所以要先引入 `vue.js` 再引 `vue-resource.js`  。
+
+[ vue-resource文档](https://github.com/pagekit/vue-resource/blob/develop/docs/http.md)
+
+> post 请求的时候，一般都在 config 中设置  emulateJSON: true
+
+```js
+const vm = new Vue({
+    el: '#app',
+    data: {},
+    methods: {
+        getInfo() {
+           this.$http.get(url,[config]).then(successCallback, errorCallback)
+        },
+        postInfo(url,[body],[config]) {
+            
+        },
+        jsonpInfo() {
+            
+        }
+    }
+})
+```
+
+## 6.1 JSONP的实现原理
+
+>使用 `cnpm install -g nodemon` 就可以运行
+>
+>nodemon  ./***.js
