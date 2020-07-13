@@ -68,7 +68,7 @@ public static int highestOneBit(int i) {
     }
 ```
 
-> 判断一个数在计算机中存储的二进制有几个
+> 判断一个数在计算机中存储的二进制有几个1
 
 ```java
 private static int z(int i) {
