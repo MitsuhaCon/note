@@ -1,4 +1,4 @@
-git在本地有三个区域：
+getgit在本地有三个区域：
 
 工作区：写代码的地方
 
@@ -14,10 +14,10 @@ git commit 到
 
 # Git命令行操作
 
-本地库初始化 
+## 本地库初始化 
 
-- 命令： git init
-- 效果：会生成.git目录
+- 命令： git init   
+- 效果：会生成.git目录（Git 只在仓库的根目录生成 .git 目录）
 - 注意：这里面存放的是本地库相关的子目录和文件，不要删除和做任何胡乱的修改
 
 设置签名
@@ -50,6 +50,24 @@ git commit 到
 
 
 
+## 查看配置信息
+
+```shell
+ # 检查已有的配置信息，有时候会看到重复的变量名，那就说明它们来自不同的配置文件比如 /etc/gitconfig 和 ~/.gitconfig），不过最终 Git 实际采用的是最后一个。
+ git config --list
+```
+
+## 查看当前目录的用户信息
+
+```shell
+#用户名
+git config user.name
+#用户邮箱
+git config user.email
+```
+
+
+
 ## git status 查看状态   git add添加到暂存区  git commit提交
 
 vim temp.txt    -->   git add temp.txt   -->  git status   
@@ -58,8 +76,6 @@ git rm --cached temp.txt （删除了暂存区的数据，并没有删除本体�
 
 git add temp.txt --> git commit temp.txt   会进入一个输入msg的vim，使用**:set nu**来显示行号
 
-> 
->
 > 可以使用   git commit -m "commit message" temp.text              这样就不用使用来编辑了
 
 ## 查看历史记录git log
@@ -73,6 +89,16 @@ git add temp.txt --> git commit temp.txt   会进入一个输入msg的vim，使�
 > git log --online
 >
 > git reflog   //HEAD@{}移动多少步到想要去的版本。
+
+通过 **--graph** 选项，查看历史中什么时候出现了分支、合并。
+
+如果只想查找指定用户的提交日志可以使用命令：**git log --author** , 例如，比方说我们要找 Git 源码中 Linus 提交的部分：
+
+```shell
+git log --author=Linus --oneline -5
+```
+
+
 
 ## 版本控制
 
@@ -99,15 +125,34 @@ git add temp.txt --> git commit temp.txt   会进入一个输入msg的vim，使�
 
 **git diff [本地库中历史版本] [文件名]** 将工作区中的文件和本地库历史记录比较
 
+- 尚未缓存的改动：**git diff**
+- 查看已缓存的改动：**git diff --cached**
+- 查看已缓存的与未缓存的所有改动：**git diff HEAD**
+- 显示摘要而非整个 diff：**git diff --start**
+
 ## git branch -v查看分支
+
+git branch  无参数时，会列出你在本地的所有分支
 
 git branch [分支名]  来创建一个分支
 
 git checkout [已有分支名] 来进行分支切换
 
-git merge [子分支名]  这个命令是站在master角度上的
+git merge [子分支名]  -d  这个命令是站在master角度上的，合并完就删除分支
 
-如果产生conflict，那么就解决，**git add [文件名]**添加到暂存区，并使用 **git commit -m "日志信息"**不带 文件名
+如果产生conflict，那么就解决，解决了之后，就用 **git add [文件名]** 添加到暂存区，并使用 **git commit -m "日志信息"**不带 文件名
+
+我们也可以使用 **git checkout -b (branchname)** 命令来创建新分支并立即切换到该分支下，从而在该分支中操作。 
+
+```
+git branch -b (branchname)
+```
+
+删除分支
+
+```shell
+git branch -d (branchname)
+```
 
 
 
@@ -126,6 +171,14 @@ git push origin master   //将本地数据推送到远程
 git clone [远程地址]
 
 效果：完整的把远程库下载到本地，创建origin远程地址别名，初始化本地库。
+
+```shell
+git clone <repo>
+git clone <repo> <directory>
+
+repo：git 仓库
+directory：本地目录
+```
 
 
 
