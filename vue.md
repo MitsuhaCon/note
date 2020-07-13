@@ -456,7 +456,7 @@ new Vue({
 
 ## 2.10 v-model
 
-**v-model** 随表彰控件类型不同面不同，在表彰控件或者组件上创建双向绑定。**v-model** 指令可以用在 `<input> ` 、`<textarea>` 、 `select` 元素上创建双向数据绑定。
+**v-model** 随表单控件类型不同面不同，在表单控件或者组件上创建双向绑定。**v-model** 指令可以用在 `<input> ` 、`<textarea>` 、 `select` 元素上创建双向数据绑定。
 
 > `v-model` 会忽略所有表单元素的 `value`、`checked`、`selected` attribute 的初始值而总是将 Vue 实例的数据作为数据来源。你应该通过 JavaScript 在组件的 `data` 选项中声明初始值。
 
