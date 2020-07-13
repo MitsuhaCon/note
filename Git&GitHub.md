@@ -159,3 +159,6 @@ git remote origin_ssh 加ssh key
 git push origin_ssh master
 ```
 
+## 更新git软件版本
+
+> git update-git-for-windows
