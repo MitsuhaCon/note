@@ -718,6 +718,73 @@ new Vue({
 })
 ```
 
+**Example**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建组件的几种方式</title>
+    <script src="../js/vue.js"></script>
+</head>
+<body>
+    <div id="app">
+        <login-content-one></login-content-one>
+        <login-content-two></login-content-two>
+        <login-content-three></login-content-three>
+        <login-content-four></login-content-four>
+        <login-content-five></login-content-five>
+        <login-five></login-five>
+    </div>
+
+    <template id="tmp">
+        <h4>这是一个四级标签</h4>
+    </template>
+</body>
+<script>
+    // 第一种
+    var login = {
+        template: "<h1>这是一个一级标题</h1>"
+    }
+    Vue.component('loginContentOne', login)
+
+    // 第二种
+    Vue.component('loginContentTwo', {
+        template: '<h2>这是一个二级标题</h2>'
+    })
+
+    // 第三种
+    var loginThree = Vue.extend({
+        template: '<h3>这是一个三级标题</h3>'
+    })
+    Vue.component('loginContentThree', loginThree)
+
+    // 第四种
+    Vue.component('loginContentFour', {
+        template: '#tmp'
+    })
+		
+    // 第五种
+    // 采用语法糖的形式
+    var loginFive = {
+        template: "<h5>这是一个五级标题，，使用了语法糖</h5>"
+    }
+    // 定义的组件必需是在一个 vue 实例里面，要不然不生效
+    var vue = new Vue({
+        el: '#app',
+        components: {
+            loginContentFive: {
+                template: '<h5>这是一个五级标题</h5>'
+            }，
+            loginFive
+        }
+    })
+</script>
+</html>
+```
+
 
 
 组件是可复用的 Vue 实例，且带有一个名字： 在基本示例中是  `<button-counter>` 。我们可以在  `一个通过 new Vue 创建的 Vue ` 根实例中，把这个组件作为自定义元素使用：
@@ -875,6 +942,182 @@ Vue.component("blog-post", {
         }
     })
 </script>
+```
+
+## 3.8 父组件向子组件传值
+
+子组件中，默认无法访问到父组件中 data 上的数据 和 methods 中的方法
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>父组件传值给子组件</title>
+    <script src="../js/vue.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- 自定义属性名  在 new Vue 实例时，使用驼峰命名，那么在标签中就要用 `-`隔开 -->
+        <demo :child-msg="parentMsg"></demo>
+    </div>
+</body>
+<script>
+    var vue = new Vue({
+        el: '#app',
+        data: {
+            parentMsg: '父组件中的数据'
+        },
+        components: {
+            demo: {
+                // 注意：子组件中的  data 数据并不是通过父组件传递过来的，而是子组件自身系有的，
+                // 比如：子组件通过 Ajax，请求回来的数据，都可以放到 data 身上
+                // 这个 data 上的数据，是可读可写的
+                data() {
+                    return {
+                        title: '123',
+                        content: 'qqq'
+                    }
+                },
+                // 组件中的 props 中的数据，都是通过父组件传递给子组件的
+                props: ['childMsg'],
+                // 要想使用父组件通过 v-bind 传递过来的 parentMsg 数据，
+                // 那么就得先在子组件中的 props 数组中先声明一个变量来接收  :child-msg 对应的就是 props 数组中的 childMsg 
+                // props 中的数据虽然可以通过 点击事件进行修改  但是会有警告，
+                // 避免直接改变prop，因为当父组件重新呈现时，该值将被覆盖。相反，应该使用基于道具价值的数据或计算属性。道具变异:“childMsg”
+                // 相当于 props 中的数据是依赖于父组件的，父组件中的数据变动了  props 中的数据也会跟着变动
+                template: '<h1 @click="change">  柑柑{{ childMsg }}</h1>',
+                methods: {
+                    change(){
+                        this.childMsg = '你的名字'
+                    }
+                }
+            }
+        }
+    })
+</script>
+</html>
+```
+
+## 3.9 父组件把方法传递给子组件
+
+在子组件的方法中  使用 **`this.$emit()`**来调用父组件的方法
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>父组件把方法传递给子组件</title>
+    <script src="../js/vue.js"></script>
+</head>
+<body>
+    <div id="app">
+        // 自定义一个 例如 `func` 的事件名
+        <demo @func="show"></demo>
+    </div>
+
+    <template id="tmp">
+        <!-- template 中只有一个根节点 -->
+        <div>
+            <p>自定义 template </p>
+            <input type="button" value="点我" @click="childClick">
+        </div>
+    </template>
+
+    <script>
+        var vue = new Vue({
+            el: '#app',
+            data: {
+
+            },
+            methods: {
+                show(){
+                    console.log("调用的是父组件中的 show 方法")
+                }
+            },
+            components: {
+                //可以把这个 demo  提到实例化的外面去 相当于用一个引用  指向  demo 这个对象
+                demo: {
+                    template: '#tmp',//通过指定的 id 去加载这个指定 id 的 template 标签中的内容，当作组件的 HTML 结构。
+                    methods: {
+                        childClick(){
+                            // emit 英文是 触发 调用的意思
+                            // 调用父组件中的方法时，使用 this.$emit('自定义的事件名'，这里是给参数的)
+                            this.$emit('func')
+                        }
+                    }
+                }
+            }
+        })
+    </script>
+</body>
+</html>
+```
+
+## 3.10 通过 ref 获取 DOM 元素和组件
+
+通过 **`ref`** 属性，在 **`js`** 中使用 **`this.$refs.属性值`** 得到相应的 **`DOM`**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通过ref获取DOM元素和组件</title>
+    <script src="../js/vue.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1 v-text="msg"></h1>
+        <login ref="tag""></login>
+        <input type="button" @click="change" value="打印内容">
+    </div>
+   
+                                                         
+    <template id="login">
+        <p>模板里面的 p 标签</p>
+        <p @func="parentMethod"></p>
+    </template>
+</body>
+<script>
+    var vue = new Vue({
+        el: '#app',
+        data: {
+            msg: '你的名字',
+            count: 1
+        },
+        components: {
+            login: {
+                data(){
+                    return {
+                        childMsg: '子 data'
+                    }
+                },
+                template: '#login',
+                methods: {
+                    childMethod(){
+                        console.log("输出有内容吗")
+                    }
+                }
+            }
+        },
+        methods: {
+            change () {
+                this.$refs.tag.childMethod()
+                console.log(this.$refs.tag.childMsg)
+            },
+            parentMethod(){
+                
+            }
+           
+        }
+    })
+</script>
+</html>
 ```
 
 
@@ -1040,3 +1283,220 @@ const vm = new Vue({
 >使用 `cnpm install -g nodemon` 就可以运行
 >
 >nodemon  ./***.js
+
+# 7 vue-router 路由
+
+## 7.1 路由的创建
+
+1. **需要加载 vue-router 路由包** ，这个包是依赖于 **`vue.js`** 的，所以要把 **`vue-router`** 写在 **`vue.js`** 后面
+2. **创建一个路由对象** 
+3. **将这个路由对象绑定到对应的 `vue` 对象中**
+4. **在页面中使用 `<router-link>` 和 `<router-view>`** 渲染页面
+
+**Example**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>路由</title>
+    <script src="../js/vue.js"></script>
+    <!--  // 1. 加载 vue-router 路由模块 -->
+    <script src="../js/vue-router.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- 路由跳转前面的 # 号是用做 hash 的 -->
+        <a href="#/login">登录 {{ $route.query.msg}}</a>
+        <a href="#/register">注册</a>
+
+        <!-- 为了不写这个 # 号  vue-router 提供了一个  router-link -->
+        <!-- router-link 默认渲染成 a 标签，如果要渲染成其它标签，可以使用 tag属性指定 -->
+        <router-link to="/login" tag="span"> router-link 登录</router-link>
+        <router-link to="/register" tag="span"> router-link 注册</router-link>
+        <!-- 这是 vue-router 提供的元素，专门用来当作占位符，将来，路由规则匹配到的组件，就会展示到这个 router-view 中去 -->
+        <router-view></router-view>
+    </div>
+    <script>
+        // 登录的模板对象
+        var login = {
+            data(){
+                return {
+                    msg: ''
+                }
+            },
+            create(){
+                this.msg = this.$route.query.id
+                console.log( this.$route.query.id)
+            }
+            template: '<h1>登录组件</h1>'
+        }
+
+        // 注册的模板对象
+        var register = {
+            template: '<h1>注册组件</h1>'
+        }
+        
+        // 2. 创建一个路由对象，当导入 vue-router 包之后，
+        // 在 window 全局对象中，就有了一个路由的构造函数，
+        // 叫做 VueRouter ,在 new 路由对象的时候，可以为构造函数传递一个配置对象
+        var routerObj = new VueRouter({
+            // routes 表示 路由匹配规则
+            routes: [
+                // 每个 route 都是一个对象，这个规则对象身上有两个必须属性
+                // 属性 1：是 path，表示监听哪个路由链接地址
+                // 属性 2：是 component，表示如果路由是前面匹配的 path , 则展示 component 属性对应的那个组件
+                // component 必须是一个组件的模板对象，不能是组件的引用名称
+                { path: '/login', component: login},
+                { path: '/register', component: register},
+                { path: '/', redirect: '/login'}// 前端路由重定向
+            ],
+            linkActiveClass: '指定一个 class 样式类去替换掉 默认的 router-link-active'
+        })
+
+
+        var vue = new Vue({
+            el: '#app',
+            data: {
+				
+            },
+            methods: {
+
+            },
+            router: routerObj  //将路由规则对象注册到 vue 对象中，用来监听 URL 地址变化，然后展示对就的组件
+            
+        })
+    </script>
+</body>
+
+</html>
+```
+
+## 7.2 通过 **`query`** 拿 url 中的参数，在模板中可以用 **`$route.query`** 拿到参数内容
+
+```html
+<router-link to="/login?id=10" tag="span"> router-link 登录</router-link>
+
+<script>
+	var login = {
+        template: '{{ $route.query.id}}',
+        created() {
+            console.log( $route.query.id)
+        }
+    }
+    
+    new VueRouter({
+        routes: [
+            { path: '/login', component: '*****'}
+        ]
+    })
+</script>
+```
+
+## 7.3 通过 `parameter` 拿 url 中的参数
+
+```html
+<router-link to="/login/10" tag="span"> router-link 登录</router-link>
+
+<script>
+	var login = {
+        template: '{{ $route.params.id}}',
+        created() {
+            console.log( $route.params.id)
+        }
+    }
+    
+    new VueRouter({
+        routes: [
+            { path: '/login/:id', component: '*****'}
+        ]
+    })
+</script>
+```
+
+## 7.4 使用 `children` 实现路由的嵌套
+
+```html
+<script>
+    
+    var account = {
+        template: 'content'
+    }
+	
+    
+    var login = {
+        template: 'content'
+    }
+    
+    new VueRouter({
+        routes: [
+            { path: '/account', component: account}
+        ],
+        children: [
+            { path: 'login', component: login}
+        ]
+    })
+</script>
+```
+
+## 7.5 命名视图实现经典布局
+
+采用模板和 **`router-view`** 中的 **`name`** 来进行指定模板显示
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>命名视图实现经典布局</title>
+    <script src="../js/vue.js"></script>
+    <script src="../js/vue-router.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <router-view ></router-view>
+        <router-view name="left"></router-view>
+        <router-view name="right"></router-view>
+        <router-view name="main"></router-view>
+    </div>
+</body>
+<script>
+    var header = {
+        template: '<h1>头</h1>'
+    }
+
+    var left = {
+        template: '<h1>左</h1>'
+    }
+
+    var right = {
+        template: '<h1>右</h1>'
+    }
+
+    var main = {
+        template: '<h1>内容</h1>'
+    }
+
+    var router = new VueRouter({
+        routes: [
+            //有 switch case 味道在里面
+            { path: '/', components: {
+                'default': header,
+                'left': left,
+                'right': right,
+                'main': main
+            }}
+        ]
+    })
+
+    var vue = new Vue({
+        el: '#app',
+        router: router
+    })
+</script>
+</html>
+```
+
