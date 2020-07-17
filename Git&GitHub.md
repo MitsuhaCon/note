@@ -160,6 +160,8 @@ git branch -d (branchname)
 
 git remote add 'origin'  远程地址      //添加一个远程地址并取名为origin
 
+git remote remove origin // 移除远程仓库地址
+
 git push origin master   //将本地数据推送到远程
 
 > 当远程仓库中有一些文件而本地没有时 ，需要进行  **git pull --rebase origin master**    来拉取文件。
