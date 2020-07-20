@@ -12,6 +12,8 @@
 
 **配置文件点位符** ${random.value}、${random.int}、${random.long}、${random.int(10)}、${random.int[1024,65536]} 
 
+![Spring 体系结构](https://atts.w3cschool.cn/attachments/image/wk/wkspring/arch1.png)
+
 # 1 `IOC` 控制反转
 
 将创建权交给 `BeanFactory` 
@@ -48,17 +50,24 @@
 
  **bean** 的作用范围，bean 标签中有一个 scope 属性
 	取值：
-		singleton: 单例的 默认值
-		prototype：多例的
+		singleton: 单例的 默认值，**创建容器时就同时自动创建了一个 bean 对象，不管你是否使用**，他都存在。每次获取到的对象都是同一个对象是。
+		prototype：多例的，它在我们创建窗口的时候并没有实例化，而是当我们获取 bean 的时候才会去创建，而且每次我们获取到的对象都不是同一个对象。
 		request：作用于 web 应用的请求范围
 		session：作用于 web 应用的会话范围
 		global-session：作用于集群环境的会话范围（全局会话范围），当不是集群的时候，它就是 session。多个服务器共用一个 global-session，负载均衡。
 
 **bean** 的生命周期
 
-​	单例对象：当容器创建时对象出生，只要窗口还在，对象一直活着，窗口销毁，对象就死亡
+​	单例对象：当容器创建时对象出生，只要容器还在，对象一直活着，窗口销毁，对象就死亡
 
 ​	多例对象：当我们使用对象时 spring 框架才为我们创建，对象只要是在使用过程中就一直活着。当对象长时间不用，且没有别的对象引用时，垃圾回收机制就会触发。
+
+```xml
+<!-- 初始化时调用 init() 方法，销毁时调用 destroy() 方法-->
+<bean id="xxxService" class="com.xxx.factory.InstanceFactory" init-method="init" destory-method="destroy"></bean>
+```
+
+
 
 # 2 `DI` 依赖注入
 
@@ -353,6 +362,12 @@ public class AccountServiceTest {
 
 # 4 动态代理
 
+> 静态代理：创建一个接口A，然后创建被代理的类实现该接口并且实现该接口中的抽象方法。之后再创建一个代理类，同时使其也实现这个接口。在代理类中持有一个被代理对象的引用，而后在代理类方法中调用该对象的方法。
+
+
+
+**动态代理：**
+
 特点：字节码隋随用随创建，随用随加载
 
 作用：不修改源码的基础上对方法增强
@@ -423,8 +438,6 @@ public class AccountServiceTest {
 
 # 5 AOP 面向切面编程
 
-AOP 是基于动态代理实现的。
-
 作用：在程序运行期间，不修源码对已有方法进行增强
 
 优势：减少重复代码、提高开发效率、维护方便
@@ -479,10 +492,161 @@ AOP 是基于动态代理实现的。
 
 	-->
     <aop:config>
+        <!-- aop:pointcut 在 aop:aspect 外面时，必须在 aop:aspect 之前定义-->
+        <aop:pointcut id="pointcutOut" expression="execution()"></aop:pointcut>
     	<aop:aspect id="logAdvice" ref="logger">
         	<aop:before method="printLog" pointcut="execution(public void com.xxx.utils.Logger.printLog())"></aop>
+            <aop:after method="afterMethod" pointcut-ref="pointcutOut"></aop:after>
         </aop:aspect>
     </aop:config>
 </beans>
  ```
+
+四种常用通知类型
+
+1. **`<aop:before>`** 前置通知：在切入点方法执行之前执行
+2. **`<aop:after-returning>`** 后置通知：在切入点方法正常执行之后执行，它和异常通知永远只能执行一个
+3. **`<aop:after-throwing>`** 异常通知：在切入点方法执行产生异常之后执行。它和后置通知永远只能执行一个
+4. **`<aop:after>`** 最终通知：无论切入点方法是否正常执行，它都会执行
+
+单独说一下环绕通知
+
+**`<aop:around>`** 可以通过配置的方式实现，也可以通过代码的方式实现。
+
+```java
+// 环绕通知的问题：当我们配置了环绕通知之后，切入点方法没有执行，面是通知方法执行了，那是因为通过动态代理中的环绕能在代码，发现动态代理的环绕通知有明确的花町物语点方法调用（method.invoke()），而我们的代码中没有
+// 借助 spring 的 ProceedingJoinPoint 来隐式调用 ,spring 框架为我们提供了一个接口， ProceedingJoinPoint ,该接口中有一个方法 proceed()，此方法就相当于明确调用切入点方法，
+public Object doBasicProfiling(ProceedingJoinPoint pjp) throws Throwable {
+    // start stopwatch
+    try {
+        // 得到方法执行所需的参数
+        Object[] args = pjp.getArgs();
+        // 明确调用业务层方法 切入点方法
+        Object retVal = pjp.proceed();
+    } catch (Throwable t) {
+        throw new RuntimeException(e);
+    } finally {
+        
+    }
+    
+    // stop stopwatch
+    return retVal;
+}
+
+// 业务代码写在 pjp.proceed(); 之前就是前置通知，之后就是后置通知，catch 中 就是异常通知， finally 中就是最终通知
+
+```
+
+## 5.2 @Pointcut、@EnableAspectJAutoProxy、@Before、@AfterReturning
+
+# 6 事务
+
+```xml
+<!-- from the file 'context.xml' -->
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/tx
+        https://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/aop
+        https://www.springframework.org/schema/aop/spring-aop.xsd">
+
+
+<!-- 配置数据源-->
+<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+	<property name="driverClassName" value="com.mysql.jdbc.Driver"></property>
+    <property name="url" value="jdbc:mysql://localhost:3306/库名"></property>
+    <property name="username" value=""></properety>
+    <property name="password" value=""></properety>
+</bean>
+<!-- spring 中基于 xml 的声明式事务控制配置步骤
+	1、配置事务管理器
+	2、配置事务的通知，此时我们需要导入事务的约束，在 data access 中 搜索   xmlns:tx
+		使用 tx:advice 标签配置事务通知
+		属性：
+				id：给事务通知起一个唯一标识
+				transaction-manager：给事务通知提供一个事务管理器引用
+	3、配置 AOP 中的通用切入点表达式
+
+-->
+<!-- 配置事务管理器-->
+<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	<property name="dataSource" ref="dataSource"></property>
+</bean>
+<!-- 配置事务的通知-->
+<tx:advice id="txAdvice" transaction-manager="transactionManager">
+    <!-- 配置事务的属性
+		isolation：用于指定事务的隔离级别。默认值是 DEFAULT ，表示用不用数据库的默认隔离级别
+ 		propagation: 用于指定事务的传播行为。默认值为 REQUIRED，表示一定会有事务。
+		timeout：用于指定事务的超时时间，默认值是 -1，表示永不超时。指定了数值，单位是秒
+		rollback-for：用于指定一个异常，当产生该异常时，事务回滚，产生其他异常时，事务不回滚。没有默认值，表示任何异常都回滚。
+		no-rollback-for：用于指定一个异常，当产生该异常时，事务不回滚，产生其他异常时，事务回滚。没有默认值，表示任何异常都回滚。
+	-->
+    <tx:attributes>
+    	<tx:method name="transfer" propagation="REQUIRED" read-only="true"
+    </tx:attributes>
+</tx:advice>
+
+<!-- 配置事务的 AOP -->
+    <aop:config>
+        <!-- 配置切入点表达式-->
+    	<aop:pointcut id="pointcut1" expression="execution()"></aop:pointcut></aop:pointcut>
+    	<!-- 创建切入点表达式和事务通知的对应关系-->
+    	<aop:adviser advice-ref="txAdvice" pointcut-ref="pointcut1"></aop:adviser>
+    </aop:config>
+```
+
+基于注解的事务
+
+1. 配置事务管理器
+2. 开户 spring 对注解事务的支持
+3. 在需要事务支持的地方使用 **`@Transaction`** 注解
+
+```java
+/**
+ * spring 的配置类，相当于 bean.xml
+ *
+ */
+
+@Configuration
+@ComponentScan("com.xxx.xxx")
+@Import({JdbcConfig.class,TransactionConfig.class})
+@PropertySource("jdbcConfig.properties")
+@EnableTransactionManagement
+public class SpringConfiguration{
+
+}
+```
+
+```java
+public class JdbcConfig{
+    @Bean("jdbcTemplate")
+    public JdbcTemplate createJdbcTemplate(DataSource dataSource) {
+        return new JdbcTemplate(dataSource);
+    }
+    
+    public DataSource createDataSource() {
+        DriverManagerDataSource dmds = new DriverManagerDataSource();
+        dmds.setDriverClassName();
+        dmds.setUrl();
+        dmds.setUser();
+        dmds.setPassword();
+    }
+}
+```
+
+```java
+public class TransactionConfig {
+    
+    @Bean(name="transactionManager")
+    public PlatformTransactionManager createTransactionManager(DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
+    }
+}
+```
 
