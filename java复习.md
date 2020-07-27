@@ -1641,3 +1641,301 @@ static final int hash(Object key) {
 ```
 
 - 首先获取对象的hashCode()值，然后将hashCode值右移16位，然后将右移后的值与原来的hashCode做**异或**运算，返回结果。（其中h>>>16，在JDK1.8中，优化了高位运算的算法，使用了零扩展，无论正数还是负数，都在高位插入0）。
+
+# 加油站
+
+> **在不经过任何处理的情况下读 `文件`，默认都是以** `ISO-8859-1` 编码格式进行读取，如果此时出现乱码，那么再进行文件本来的格式的转码
+
+```java
+private static void getPropertiesBySpring() {
+    Properties properties = new Properties();
+    try {
+    	// package org.springframework.core.io.support.PropertiesLoaderUtils;
+        properties = PropertiesLoaderUtils.loadAllProperties("config.properties");
+        System.out.println(new String(properties.getProperty("name").getBytes("iso-8859-1"),"gbk"));
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+```
+
+
+
+# 8 Thread 线程
+
+线程状态
+
+![线程状态](https://upload-images.jianshu.io/upload_images/4840092-f85e70e2262b7878.png?imageMogr2/auto-orient/strip|imageView2/2/w/1155/format/webp)
+
+## 8.1**线程休眠** `sleep()`
+
+- sleep 指定当前线程阻塞的毫秒数
+- sleep 存在异常 InterruptedException
+- sleep 时间达到后线程进入就绪状态
+- sleep 可以模拟网络延时，倒计时等
+- 每个对象都有一个锁，sleep 不会释放锁
+
+## 8.2 **线程礼让** `yeild()`
+
+- 礼让线程，让当前正在执行的线程暂停，但不阻塞
+- 将线程从运行状态转为就绪状态
+- **让 cpu 重新调度，礼让不一定成功！看 cpu 心情**
+
+> 当一个线程执行了 yeild() 方法后，会从运行状态转为就绪状态，并重新和其它就绪状态的线程竞争 cpu 。
+
+## 8.3 合并线程 `join()`
+
+- join 合并线程，待此线程执行完成后，再执行其他线程，其他线程阻塞
+- 可以想象成插队的场景，使用 join() 方法调用的线程，会一直占用 cpu ，执行到死亡才让出资源
+
+## 8.4 线程的状态
+
+- NEW
+  	A thread that has not yet started is in this state.尚未启动的线程
+- RUNNABLE
+  A thread executing in the Java virtual machine is in this state.在 JAVA 虚拟机中执行的线程
+- BLOCKED
+  A thread that is blocked waiting for a monitor lock is in this state.被阻塞，等待监视器锁定的线程
+- WAITING
+  A thread that is waiting indefinitely for another thread to perform a particular action is in this state.正在等待另一个线程执行特定动作的线程
+- TIMED_WAITING
+  A thread that is waiting for another thread to perform an action for up to a specified waiting time is in this state.正在等待另一个线程执行动作达到指定等待时间的线程
+- TERMINATED
+  A thread that has exited is in this state.已退出的线程，一旦进入死亡状态，**线程就不能再次启动**
+  A thread can be in only one state at a given point in time. These states are virtual machine states which do not reflect any operating system thread states.
+
+## 8.5 线程优先级
+
+- java 提供一个线程调度器，来监控程序中启动后进入就绪状态的所有线程，线程调度器按照优先级决定应该调度哪个线程来执行
+- 张程的优先级用数字表示，范围从 1 ~ 10
+  - Thread.MIN_PRIORITY = 1;
+  - Thread.MAX_PRIORITY = 10;
+  - Thread.NORM_PRIORITY = 5;
+- 使用以下方式改变或获取优先级
+  - `getPriority()`
+  - `setPriority(int x)`
+
+> main 主线程的优先级是默认的，改不了。
+>
+> 对自定义的线程，要先设置优先级再 start() 才能生效
+>
+> 优先级低只是意味着获得调度的概率低，并不是优先级低就不会被调用了，这都是看 CPU 的调度
+
+## 8.6 守护线程 daemon thread
+
+- 线程分为 **用户线程** 和 **守护线程**
+- 虚拟机必须确保用户线程执行完毕
+- 虚拟机不用等待守护线程执行完毕
+- 如，后台记录操作日志，监控内存，垃圾回收等待...
+
+使用 setDaemon(Boolean b)可以设置守护线程，默认为false，表示用户线程
+
+## 8.7 线程同步
+
+- 由于同一进程的多个线程共享同一块存储空间，在带来方便的同时，也带来了访问冲突问题，为了保证数据在方法中被访问时的正确性，在访问时加入 **锁机制**  `synchronized` ,当一个线程获得对象的排它锁，独占资源，其他线程必须等待，使用后释放锁即可，存在以下问题：
+  - 一个线程持有锁会导致其他所有需要此锁的线程挂起
+  - 在多线程竞争下，加锁，释放锁会导致比较多的上下文切换和调度延时，引起性能问题
+  - 如果一个优先级高的线程等待一个优先级低的线程释放锁，则会导致优先级倒置，引起性能问题
+
+# 8.8 死锁
+
+- 多个线程各自占有一些共享资源，并且互相等待其他线程占有的资源才能运行，面导致两个或者多个线程都在等待对方释放资源，都停止的情形，某一个同步块同时拥有”**两个以上对象的锁**“时，就可能会发生”**死锁**“的问题
+
+**产生死锁的必要条件**
+
+1. 互斥条件：一个资源每次只能被一个进程使用。
+2. 请求与保持条件：一个进程因请求资源面阻塞，对已获得的资源保持不放。
+3. 不剥夺条件：进程已获得的资源，在未使用完之前，不能强行剥夺。
+4. 循环等待条件：若干进程之间形成一种头尾相接的循环等待资源关系。
+
+# 8.9  Lock 类
+
+- Lock 是显式锁（手动开启和关闭乐 ，别忘记关闭锁），synchronized 是隐式锁，出了作用域自动释放
+- Lock 只有代码块锁，synchronized 有代码块锁和方法锁
+- 使用 Lock 锁，JVM 将花费较少的时间来调度线程，性能更好。并且具有更好的扩展性
+- 优先使用顺序
+  - Lock > 同步代码块（已经进入了方法体，分配了相应资源）> 同步方法（在方法休之外）
+
+# 9 JVM 
+
+- 请你谈谈你对 JVM 的理解
+- java 8 虚拟机和之前的变化更新
+- 什么是 OOM、什么是栈溢出 StackOverFlowError?怎么分析
+- JVM 的常用调优参数有哪位
+- 快照如何抓取，怎么分析 Dump 文件？
+- 谈谈 JVM 中类加载器。
+
+
+
+
+
+1. **JVM 的位置**
+
+   - > 
+
+2. JVM 的体系结构
+
+3. 类加载器
+
+   - 用户自定义类加载器 CustomClassLoader
+
+   - 应用类加载器 AppClassLoader
+   - 扩展类加载器 ExtClassLoader
+   - 启动类加载器 BootstrapClassLoader（java 代码中 getClassLoader 得到的是 null）
+   - 虚拟机自带的加载器
+
+4. 双亲委派机制
+
+   1. 
+
+5. 沙箱安全机制
+
+   - 字节码校验器  确保 java 类文件遵循 java 语言规范，并不是所有的类文件都会经验团字节码校验，比如核心类就不会
+   - 类装载器
+     - 它防止恶意代码去干涉善意的代码  -> 双亲委派机制
+     - 它将代码归入保护哉，确定了代码可以进行哪些操作
+
+6. Native
+
+   凡是带了 native 关键字的，说明 java 的作用范围达不到了，会去调用底层 c 语言的库，会进入 本地方法栈（Native Method Interface） JNI 作用：扩展 java 的作用，融合不同的编程语言为 java 所用，
+
+7. PC 寄存器 Program Counter Register
+
+   每个线程都有一个程序计数器，是线程私有的，就是一个指针，指向方法区中的方法字节码
+
+8. 方法区
+
+   方法区是被所有线程共享的，所有字段和方法字节码，以及一些特殊方法，如构造函数，接口代码也在此定义，简单说，所有定义的方法的信息都保存在该区域，此区域属于共享区间
+
+   > 静态变量，静态方法，常量、类信息（构造方法、接口定义）、运行时的常量池存在方法区中，但是实例变量存在堆内存中，和方法区无关
+
+9. 栈
+
+   栈是 先进后出 FILO  first in last out  ，栈内存，主管程序的进行，生命周期和线程同步，线程结束，栈内存也就释放，对于栈来说，不存在垃圾回收，一旦线程结束，栈就 Over
+
+   **栈中可放：8大基本数据类型 、对象引用 、实例的方法**
+
+   > 在内存中：画出一个对象实例化的过程
+
+   队列 先进先出 FIFO first in first out
+
+10. 三种 JVM ，用 `java -version` 查看到的是一种， HotSpot。
+
+    - Sun 公司  `HotSpot`
+    - BEA `JRockit`
+    - IBM `J9 VM`
+
+11. 堆 Heap
+
+    堆： 一个 `JVM` 中只有一个堆内存，堆内存的大小是可以调节的。类加载器读取了类文件后，一般会把 类、方法、常量、变量，保存我们所有引用类型的真实对象
+
+    堆内存中还要细分为三个区域
+
+    - 新生区（伊甸园区），分三个子区
+
+      - 伊甸园
+      - 幸存区 0 区
+      - 幸存区 1 区
+
+    - 养老区
+
+    - 永久区
+
+      > GC 垃圾回收，主要是在伊甸园区和养老区
+      >
+      > 假设内存满了，OOM，堆内存不够，那么 JVM 就死了
+
+      **在 jdk8 及以后，永久区变成了元空间**
+
+12. 新生区、老年区
+
+    新生区：
+
+    - 类：诞生和成长的地方，甚至死亡
+    - 伊甸园，所有的对象都是在伊甸园区 new 出来的
+
+13. 永生区
+
+    这个区域常驻内存的，用来存放 JDK 自身携带的 Class 对象。Interface 元数据，存储的是 java 运行时的一些环境或类信息，这个区域不存在垃圾回收。
+
+    ```java
+    // 总内存 默认情况下：分配的总内存是电脑的内存的 1/4   用  -Xmx 进行设置
+    Runtime.getRuntime().maxMemory(); 
+    
+    // 初始化内存 默认情况下：分配的总内存是电脑的内存的 1/64  用 -Xms 进行设置
+    Runtime.getRuntime().totalMemory();
+    
+    // -XX:+   是打印 GC 垃圾回收信息
+    ```
+
+    配置 JVM 参数进行调优
+
+    ```shell
+    -Xms1024m -Xmx1024m -XX:+PrintGCDetails
+    ```
+
+    在一个项目中，突然出现了 OOM 故障，那么该如何排除
+
+    - 能够看到代码第几行出错，内存快照分析工具：`MAT`、`Jprofiler`
+
+    - Debug，一行行代码分析
+
+      MAT、Jprofiler 作用
+
+      - 分析 Dump 内存文件，快速定位内存泄露
+      - 获得堆中的数据
+      - 获得大的对象
+
+14. 堆内存调优
+
+    使用 JProfiles 插件  和 JProfiles 软件'
+
+    ```shell
+    # JVM 参数设置  下载 dump 文件  然后在 JProfiles 客户端中使用
+    -Xms1024m -Xmx1024m -XX:+HeapDumpOnOutOfMemoryError
+    ```
+
+    
+
+15. GC 常用算法
+
+    1. 引用计数法：看一个对象被调用了几次，调用次数为零的就会被清理掉
+
+    2. 复制算法：
+
+       >  默认情况下，当一个对象经历了 15 次GC，都还没有死，那么就会进入老年区
+       >
+       > 可以通过
+       >
+       > -XX:MaxTenuringThreshold=999 来设置这个值
+
+       两个幸存区中有一个是空的。
+
+       好处：没有内存碎片
+
+       坏处：浪费了内存空间，有一半幸存区内存没有装东西
+
+    3. 标记擦除法：
+
+    4. 标记擦除压缩法：
+
+16. JMM  java memory model
+
+    什么是 JMM?
+
+    它是干嘛的？ 百度或看其它人的博客
+
+    ​	作用：缓存一致必协议，用于定义数据读写的规则
+
+    ​	JMM 定义了 **线程工作内存** 和 **主内存之间的抽象关系** ：线程之间的共享变量存储在主内存中，每个线程都有一个私有的本地内存
+
+17. 总结
+
+    内存效率：复制算法  >  标记清除算法 > 标记压缩算法 （时间复杂度）
+
+    内存整齐度：复制算法 = 标记压缩算法 > 标记清除算法
+
+    内存利用率：标记压缩算法 = 标记清除算法 > 复制算法
+
+> 没有最好的算法，只有最合适的算法   GC：分代收集算法
+
