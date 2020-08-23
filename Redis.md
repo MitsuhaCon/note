@@ -1,3 +1,11 @@
+# Nosql 概述
+
+大数据时代。一般的数据库无法进行分析处理了，2006年出的 Hadoop。
+
+大数据时代的 3V 和 3高
+
+推荐文章：阿里云的这群疯子
+
 # 1、安装
 
 > CentOS
@@ -10,7 +18,20 @@ tar xzf redis-最新稳定版本.tar.gz  别名
 cd 别名
 
 make
+
+# make 完可以执行 make install 进行确认
 ```
+
+> 默认安装的程序在  /usr/local/bin 下面
+
+```shell
+在 /usr/local/bin 下执行启动也可以
+
+# 指定配置文件启动服务
+redis-server 指定的配置文件路径
+```
+
+
 
 **测试**
 
@@ -24,6 +45,9 @@ cd src
 cd src
 
 ./redis-cli
+
+进行 redis-cli 后  可以 ping  -> 得到 pong则成功
+要退出服务  则用  shutdown
 ```
 
 # 2、配置
