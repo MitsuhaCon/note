@@ -151,7 +151,7 @@ keys *
 
 ## 2.5、五大数据类型
 
-- Redis-key
+- **Redis-key**
 
     ```shell
      keys *
@@ -180,7 +180,7 @@ keys *
 
     
 
-- String
+- **String**
 
     ```shell
     127.0.0.1:6379> set key value
@@ -258,7 +258,7 @@ keys *
     
     ```
 
-- List
+- **List**
 
     在 redis 里面，我们可以把 list 玩成 栈、队列、阻塞队列
 
@@ -383,6 +383,68 @@ keys *
     2. 如果 key 不存在，那么就创建新的链表，如果 key 存在，那么就添加元素
     3. 如果移除了 list 中所有的值，那么就是一个空链表，也就意味着这个 list 不存在了
     4. 在两边插入或者改动值，效率最高
+
+- **set**
+
+    **set 中无重复的 value**
+
+    ```shell
+    127.0.0.1:6379> sadd set one  # 往 set 中添加值
+    (integer) 1
+    127.0.0.1:6379> smembers set  # 查询出 set 中的成员
+    1) "one"
+    127.0.0.1:6379> sismember set one  # one 是否是 set 的成员
+    (integer) 1
+    
+    127.0.0.1:6379> scard set  # 查看 set 中有几个元素
+    (integer) 3
+    
+    127.0.0.1:6379> srem set one  # 移除 set 中指定的元素
+    (integer) 1
+    
+    127.0.0.1:6379> srandmember set  # 随机取 set 中的一个元素
+    "two"
+    127.0.0.1:6379> srandmember set 2  # 随机取 set 中的丙个元素
+    1) "three"
+    2) "two"
+    127.0.0.1:6379> srandmember set
+    "three"
+    
+    
+    127.0.0.1:6379> spop set # 随机删除一个 set 中的元素
+    "one"
+     
+    127.0.0.1:6379> smove source destination member # 将 source 中的 member 移动到 destination 中
+    
+    127.0.0.1:6379> smembers set
+    1) "four"
+    2) "one"
+    3) "three"
+    4) "two"
+    127.0.0.1:6379> smembers set1
+    1) "3"
+    2) "1"
+    3) "one"
+    4) "2"
+    127.0.0.1:6379> sdiff set set1  # set 中剔除 与 set1 中相同的数据
+    1) "four"
+    2) "three"
+    3) "two"
+    127.0.0.1:6379> sinter set set1  # 交集 set 和 set1 中共同存在的数据
+    1) "one"
+    127.0.0.1:6379> sunion set set1  #  并集
+    1) "three"
+    2) "2"
+    3) "two"
+    4) "3"
+    5) "1"
+    6) "four"
+    7) "one"
+    
+    
+    ```
+
+    > 用 set 的交并补 可以做共同好友呀，共同关注等应用
 
 # 什么是 CAS
 
