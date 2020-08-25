@@ -446,6 +446,363 @@ keys *
 
     > 用 set 的交并补 可以做共同好友呀，共同关注等应用
 
+- **hash**
+
+    hash底层是  key-value 形式的，本质和 string 没有什么太大区别，命令是以 
+
+    ```shell
+    # 通过 hset 往 temp 放入了 一对  yang（key） li(value)，插入单个数据
+    127.0.0.1:6379> hset temp yang li
+    (integer) 1
+    # 通过 hget temp yang(key) 来取出 temp 中 key 为 yang 的值
+    127.0.0.1:6379> hget temp yang
+    "li"
+    # 通过 hmset 插入多个key value
+    127.0.0.1:6379> hmset temp one 1 two 2  
+    (integer) 2
+    # 取出 temp 中所有的键与值
+    127.0.0.1:6379> hgetall temp
+    1) "one"
+    2) "1"
+    3) "two"
+    4) "2"
+    # 取出多个值
+    127.0.0.1:6379> hmget temp one two
+    1) 1
+    2) 2
+    # 删除指定的数据
+    127.0.0.1:6379> hdel temp one
+    (integer) 1
+    127.0.0.1:6379> hgetall temp
+    1) "two"
+    2) "2"
+    # hlen 查看 hash 中有多少个键值对
+    127.0.0.1:6379> hlen temp
+    (integer) 1
+    # hexists 查看是否存在某个 key
+    127.0.0.1:6379> HEXISTS temp two
+    (integer) 1
+    # 查看 temp 中所有的 key 值
+    127.0.0.1:6379> hkeys temp
+    1) "two"
+    2) "one"
+    # 查看 temp 中所有的 value 值
+    127.0.0.1:6379> hvals temp
+    1) "2"
+    2) "1"
+    127.0.0.1:6379> hset temp three 3
+    (integer) 1
+    # 通过 hincrby 来指定字段的整数值加上增量 increment
+    127.0.0.1:6379> hincrby temp three 1
+    (integer) 4
+    # 可以通过对象的形式存储数据
+    127.0.0.1:6379> hset temp user:1:name yang
+    (integer) 1
+    127.0.0.1:6379> hget temp user:1:name
+    "yang"
+    ```
+
+- **Zset**  sorted set
+
+在 set 的基础上增加了一个 排序
+
+```shell
+# 添加一个元素放在第一个
+127.0.0.1:6379> zadd temp 1 one
+(integer) 1
+
+# 同时添加两个元素分别指定位置
+127.0.0.1:6379> zadd temp 2 two 3 three
+(integer) 2
+
+# zrange 取数
+127.0.0.1:6379> zrange temp 0 -1
+1) "one"
+2) "two"
+3) "three"
+
+# 通过 zrangebyscore 来排序  后两位可以指定区间
+127.0.0.1:6379> zrangebyscore temp -inf +inf 
+1) "one"
+2) "two"
+3) "three"
+
+# 排序出来并带有 scores   从负无穷 到 下无穷
+127.0.0.1:6379> zrangebyscore temp -inf +inf withscores
+1) "one"
+2) "1"
+3) "two"
+4) "2"
+5) "three"
+6) "3"
+
+# 从正无穷 到时
+127.0.0.1:6379> zrevrangescore temp +inf -inf
+1) "three"
+2) "two"
+3) "one"
+
+# 获取指定区间的值的数量
+127.0.0.1:6379> zcount temp 1 3
+(integer) 3
+
+# 查看 temp 中有几个值
+127.0.0.1:6379> zcard temp
+(integer) 3
+
+# 移除指定的值
+127.0.0.1:6379> zrem temp one
+(integer) 1
+127.0.0.1:6379> zrange temp 0 -1
+1) "two"
+2) "three"
+
+
+
+
+```
+
+
+
+
+
 # 什么是 CAS
 
 # 看  JUC 并发编程
+
+## 2.6、三种特殊数据类型
+
+- **geospatial** 地理位置
+
+    语法：GEOADD key longitude latitude member [longitude latitude member ...]
+
+    ```shell
+    # 添加地理位置
+    127.0.0.1:6379> geoadd china:city 116.41 39.91 beiging 
+    (integer) 1
+    127.0.0.1:6379> geoadd china:city 121.445 31.213 shanghai
+    (integer) 1
+    
+    # 经纬度是有范围要求的  超出范围就会报错
+    127.0.0.1:6379> geoadd china:city 104.071 3067 chengdu 106.549 29.581 chongqin
+    (error) ERR invalid longitude,latitude pair 104.071000,3067.000000
+    
+    # 可以同时插入多个地理位置
+    127.0.0.1:6379> geoadd china:city 104.071 30.67 chengdu 106.549 29.581 chongqin
+    (integer) 2
+    
+    # 查看数据 用 geopos   获取当前的坐标值
+    127.0.0.1:6379> geopos china:city chongqin
+    1) 1) "106.54900163412094116"
+       2) "29.58100070345364685"
+    127.0.0.1:6379> geopos china:city shanghai beijing
+    1) 1) "121.44499808549880981"
+       2) "31.213001199663303"
+    2) 1) "116.40999823808670044"
+       2) "39.90999956664450821"
+    
+    # 查看两地的距离  用 geodist   distance
+    127.0.0.1:6379> geodist china:city beijing chongqin
+    "1458099.4088"
+    # 可以带单位  m米  m千米  mi英里  ft英尺
+    127.0.0.1:6379> geodist china:city beijing chongqin km
+    "1458.0994"
+    
+    # 查找 以 110 30 为圆心  1000km 为半径的圆里有几个城市在 china:city 中
+    127.0.0.1:6379> georadius china:city 110 30 1000 km
+    1) "chongqin"
+    2) "chengdu"
+    
+    # withdist 参数是指两地距离  withcoord 是指 chongqing 的经纬度  
+    # count 指定最多查询出多少个维结果
+    127.0.0.1:6379> georadius china:city 110 30 500 km withdist withcoord
+    1) 1) "chongqin"
+       2) "336.3467"
+       3) 1) "106.54900163412094116"
+          2) "29.58100070345364685"
+    
+    # georadiusbymember 通过指定元素进行查找
+    127.0.0.1:6379> georadiusbymember china:city beijing 1000 km withdist withcoord
+    1) 1) "beiging"
+       2) "0.0000"
+       3) 1) "116.40999823808670044"
+          2) "39.90999956664450821"
+    2) 1) "beijing"
+       2) "0.0000"
+       3) 1) "116.40999823808670044"
+          2) "39.90999956664450821"
+    
+    # geohash 通过这个 geohash 将经纬度转换成 hash 值
+    127.0.0.1:6379> geohash china:city beijing
+    1) "wx4g0crhte0"
+    127.0.0.1:6379> geohash china:city shanghai
+    1) "wtw3ed1sct0"
+    
+    127.0.0.1:6379> ZRANGE china:city 0 -1
+    1) "chongqin"
+    2) "chengdu"
+    3) "shanghai"
+    4) "beiging"
+    5) "beijing"
+    
+    ```
+
+    > geo 底层用的是 zset  我们可以通过 zrem 来删除
+
+- **Hperloglog**
+
+    > 基数的概念
+
+    占用内存是固定的  2^64个不同的元素 只占12KB 内存
+
+    ![https://pic3.zhimg.com/80/v2-8437d2b2017dd5261412f8100b6ea864_720w.png](https://pic3.zhimg.com/80/v2-8437d2b2017dd5261412f8100b6ea864_720w.png)
+
+    ```shell
+    # 通过 pfadd 添加元素
+    127.0.0.1:6379> pfadd ykey 1 2 3 4 5
+    (integer) 1
+    127.0.0.1:6379> pfadd lkey 2 3 4 5 6
+    (integer) 1
+    
+    # 通过 pfcount 来查看元素中的个数
+    127.0.0.1:6379> pfcount ykey
+    (integer) 5
+    127.0.0.1:6379> pfcount lkey
+    (integer) 5
+    
+    # 通过 pfmerge 来合并数据  做并集，但是有一定误差
+    127.0.0.1:6379> pfmerge mkey ykey lkey
+    OK
+    127.0.0.1:6379> pfcount mkey
+    (integer) 6
+    
+    ```
+
+- **Bitmaps**
+
+    > 通过 bit 位来存储数据
+
+    ```shell
+    # 通过 setbit 插入数据 值只能是 1 或 0 
+    127.0.0.1:6379> setbit day 0 1
+    (integer) 0
+    127.0.0.1:6379> setbit day 1 0
+    (integer) 0
+    127.0.0.1:6379> setbit day 2 1
+    (integer) 0
+    127.0.0.1:6379> setbit day 3 1
+    (integer) 0
+    
+    # 通过 getbit 来获取值
+    127.0.0.1:6379> getbit day 2
+    (integer) 1
+    
+    # 通过 bitcount 来获得值为 1 的数据有多少条
+    127.0.0.1:6379> bitcount day
+    (integer) 3
+    
+    ```
+
+    ## 2.7、事务
+
+    Redis 事务本质：一组命令的集合，一个事务中的所有命令都会被序列化。在事务执行过程中，会按照顺序执行，一次性、顺序性、排他性！执行一些列的命令
+
+    > Redis 单条命令式是保证原子性的，但是事务是不保证原子性的。Redis事务没有隔离级别的概念
+
+- 开户事务（multi）
+
+- 命令入队（）
+
+- 执行事务（）
+
+    >
+
+    ```shell
+    # 通过 multi 开启事务
+    127.0.0.1:6379> multi
+    OK
+    127.0.0.1:6379> set k1 v1
+    QUEUED
+    127.0.0.1:6379> set k2 v2
+    QUEUED
+    127.0.0.1:6379> get k1
+    QUEUED
+    127.0.0.1:6379> get k2
+    QUEUED
+    # 通过 exec 执行事务  队列是先进先出，当执行了 exec ，那么对应的事务就没了
+    127.0.0.1:6379> exec
+    1) OK
+    2) OK
+    3) "v1"
+    4) "v2"
+    
+    # 重新开启事务
+    127.0.0.1:6379> multi
+    OK
+    127.0.0.1:6379> set k k
+    QUEUED
+    127.0.0.1:6379> set kk kk
+    QUEUED
+    127.0.0.1:6379> set kkk kkk
+    QUEUED
+    
+    # 取消事务  事务队列中的指令都不会执行
+    127.0.0.1:6379> discard
+    OK
+    127.0.0.1:6379> get kkk
+    (nil)
+    
+    ```
+
+    **编译出错**，事务中所有的命令都不会执行
+
+    ```shell
+    # 开启事务
+    127.0.0.1:6379> multi
+    OK
+    127.0.0.1:6379> set a a
+    QUEUED
+    127.0.0.1:6379> set b b
+    QUEUED
+    
+    # 编译异常
+    127.0.0.1:6379> setget c c
+    (error) ERR unknown command `setget`, with args beginning with: `c`, `c`, 
+    
+    # 执行事务  那么事务中的所有命令都不会执行
+    127.0.0.1:6379> exec
+    (error) EXECABORT Transaction discarded because of previous errors.
+    127.0.0.1:6379> get b
+    (nil)
+    
+    ```
+
+    **运行出错**，事务中的命令如果有错误，但不会影响到正解的命令执行
+
+    ```shell
+    127.0.0.1:6379> multi
+    OK
+    127.0.0.1:6379> set k1 "k1"
+    QUEUED
+    # incr 自增值只能是数字
+    127.0.0.1:6379> incr k1
+    QUEUED
+    127.0.0.1:6379> set k2 k2
+    QUEUED
+    127.0.0.1:6379> set k3 k3
+    QUEUED
+    127.0.0.1:6379> exec
+    1) OK
+    2) (error) ERR value is not an integer or out of range
+    3) OK
+    4) OK
+    127.0.0.1:6379> get k1
+    "k1"
+    127.0.0.1:6379> get k2
+    "k2"
+    127.0.0.1:6379> get k3
+    "k3"
+    
+    ```
+
+    
