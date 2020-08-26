@@ -713,7 +713,7 @@ keys *
 
 - 命令入队（）
 
-- 执行事务（）
+- 执行事务（exec）
 
     >
 
@@ -803,6 +803,93 @@ keys *
     127.0.0.1:6379> get k3
     "k3"
     
+    ```
+
+    **悲观锁**：很悲观，认为什么时候都会出问题，无论做什么都会加锁
+    
+    **乐观锁**：很乐观，认为什么时候都不会出问题，所以不会上锁！更新数据的时候去判断一下，在此期间是不是有人修改过这个数据，可以通过获取 version 来判断，更新的时候比较 version。通过 watch 来监视，通过 unwathc 来取消监视
+
+# Jedis
+
+什么是 jedis ，是 redis 官方推荐的 java 连接开发工具，使用 java 操作 redis 中间件，如果你要使用 java 操作 redis，那么一定要对 jedis 十分熟悉
+
+1. 导入对应的 jedis 依赖 和 fastjson 依赖
+
+    ```pom
+    		<!-- https://mvnrepository.com/artifact/redis.clients/jedis -->
+            <dependency>
+                <groupId>redis.clients</groupId>
+                <artifactId>jedis</artifactId>
+                <version>3.3.0</version>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/com.alibaba/fastjson -->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>1.2.73</version>
+            </dependency>
+    ```
+
+    ```shell
+    # 连接阿里的 redis
+    # 第一步 查看 ip，并将 配置到 redis.config 中 通过 ifconfig 查看
+    # 第二步 将 ip bind 到配置文件中
+    # 第三步  启动 redis-server
+    ```
+
+    ```java
+    // project structure 中：配置的 modules 中  sources 和 dependencies 的 SDK 要保持一致
+    // project structure 中：modules 和 project 的 SDK 也要保持一致
+    // Setting 中 搜索 javac 修改对应的编译版本
+    // java 这边测试  输出 PONG 就测试成功
+    public class TestPing {
+        public static void main(String[] args) {
+            // 1、new 一个 jedis 的对象
+            Jedis jedis = new Jedis("106.14.7.167", 6379);
+            String ping = jedis.ping();
+            System.out.println(ping);
+        }
+    }
+    
+    ```
+
+    
+
+2. 操作依赖
+
+3. 断开连接
+
+    ```java
+    public static void main(String[] args) {
+            // 创建一个 jedis 的对象
+            Jedis jedis = new Jedis("106.14.7.167", 6379);
+            // 清空当前默认 0 号数据库
+            jedis.flushDB();
+            // 开启事务
+            Transaction multi = jedis.multi();
+            // 手动模拟 json 数据
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("name","mitsuha");
+            jsonObject.put("age",10);
+            String str = jsonObject.toJSONString();
+            try {
+                // 通过事务添加数据
+                multi.set("test", str);
+                multi.set("test1", str);
+                //int i = 1 / 0;
+                // 执行事务
+                multi.exec();
+            } catch(Exception e) {
+                // 回滚事务
+                multi.discard();
+            } finally {
+                // 尝试输出添加的数据
+                System.out.println(jedis.get("test"));
+                System.out.println(jedis.get("test1"));
+                // 关闭连接
+                jedis.close();
+            }
+        }
     ```
 
     
