@@ -67,6 +67,7 @@ MAVEN_HOME  D:\Software\apache-maven-3.6.1
 <!-- 在 build 中配置 resources，来防止我们资源导出失败的问题-->
 <build>
       <resources>
+      <!-- src/main/resources 的文件不用下面的第一个 resource，否则会加载不来，应该注释掉-->
         <resource>
             <directory>src/main/resources</directory>
             <excludes>
