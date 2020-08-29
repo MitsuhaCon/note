@@ -182,7 +182,7 @@ public class Emp(){}
 # 6、使用注解开发
 
 ```java
-// 注解在接口中的方法上使用，适用于简单的 sql 语句
+// 注解在接口中的方法上使用，适用于简单的 sql 语句，方法中有多个参数，就得用 @Param 注解每个基本类型的参数
 @Select("select * from emp where empno = #{empno}")
 Emp getEmpByAnnotation(int empno);
 ```
@@ -193,4 +193,56 @@ Emp getEmpByAnnotation(int empno);
 </mappers>
 ```
 
+关于 @Param() 注解
+
+- 基本类型的参数或者 String 类型的参数都需要加上 @Param
+- 引用类型不需要加
+- 如果只有一个基本类型的话，可以忽略，但是建议都加上
+- sql 中引用的是@Param 里面的值
+
 # 走读 Mybatis 执行流程的代码 
+
+# 7、多对一处理
+
+# 8、一对多处理
+
+# 9、动态 SQL
+
+- if
+
+- choose（when，otherwise）
+
+- trim（where，set）
+
+- SQL 片段
+
+- Foreach
+
+    ```xml
+    <foreach item="item" index="index" collection="list" 
+             open="(" separator= "," close=")">
+    </foreach>
+    ```
+
+# 10、Mybatis 缓存
+
+- 一级缓存，默认打开，sqlsession 级别的，增删改操作，会刷新缓存，可以通过 sqlsession.clearCache(); 手动
+- 二级缓存，也叫全局缓存，一级缓存作用域太低了，所以诞生了二级缓存，基于 namespace级别的缓存，一个名称空间，对应一个二级缓存
+- 工作机制
+    - 一个会话查询一条数据，这个数据就会被放在当前会话的一级缓存中
+    - 如果当前会话关闭了，这个会话对应的一级缓存就没了，但是我们想要的是，会话关闭了，一级缓存中的数据被保存到二级缓存中
+    - 新的会话查询信息，就可以从二级缓存中获取内容
+    - 不同的 mapper查出的数据会放在自己对应的缓存(map)中
+
+```
+在对应的 mapper.xml中 使用<cache/> 就开启了二级缓存
+<cache/>
+通过这种方式，实体类可以不用序列化
+
+<cache eviction="FIFO" flushInterval="60000" size="512" readOnly="true"/>
+通过这种方式，实体类就必须序列化，否则会报错
+```
+
+先看二级缓存有没有数据，没有再去一级缓存，最后都会去数据库拿数
+
+> 通过 Ehcache 来自定义缓存
