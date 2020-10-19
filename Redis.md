@@ -171,7 +171,7 @@ keys *
      # 设置一个 key 多少秒过期
      expire key seconds
      
-     # 查看一个 key 还有多少秒过期
+     # 查看一个 key 还有多少秒过期 ttl 是 time to live 生存时间
      ttl key
      
      # 查看 key 是什么类型
