@@ -5,6 +5,35 @@
 **@PropertySource** 转载指定的配置文件。例如： 
 
 @PropertySource(value = {"classpath:person.properties"}) 
+但这种形式只能读取properties文件，如果要读取yml文件，那么就得写一个类继承DefaultPropertySourceFactory
+```java
+public class XxxxxSourceFactory extends DefaultPropertySourceFactory {
+  @Override
+  public PropertySource<?> createPropertySource(@Nullable String name,
+                                                EncodedResource resource)
+                                                throws IOException {
+    String sourceName = name != null ? name : resource.getResource().getFilename();
+
+    if (sourceName != null
+          &&(sourceName.endsWith(".yml") || sourceName.endsWith(".yaml"))) {
+      Properties propertiesFromYaml = loadYml(resource);
+      //将YML配置转成Properties之后，再用PropertiesPropertySource绑定
+      return new PropertiesPropertySource(sourceName, propertiesFromYaml);
+    } else {
+      return super.createPropertySource(name, resource);
+    }
+  }
+
+  //将YML格式的配置转成Properties配置
+  private Properties loadYml(EncodedResource resource) throws IOException{
+    YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
+    factory.setResources(resource.getResource());
+    factory.afterPropertiesSet();
+    return factory.getObject();
+  }
+
+}
+```
 
 **@****ImportResource** 导入Spring的配置文件，让配置文件里面的内容生效，例如：@ImportResource(location = {"classpath:beans.xml"})，自己写一个beans.xml 
 
