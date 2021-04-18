@@ -40,7 +40,7 @@ public class XxxxxSourceFactory extends DefaultPropertySourceFactory {
 public class Family {
 ```
 
-**@****ImportResource** 导入Spring的配置文件，让配置文件里面的内容生效，例如：@ImportResource(location = {"classpath:beans.xml"})，自己写一个beans.xml 
+**@ImportResource** 导入Spring的配置文件，让配置文件里面的内容生效，把这个注解放在启动类上。例如：@ImportResource(location = {"classpath:beans.xml"})，自己写一个beans.xml 
 
 **@Bean** 将返回值添加到容器中，容器中这个组件默认的id就是方法名。 
 
