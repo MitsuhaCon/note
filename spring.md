@@ -34,6 +34,11 @@ public class XxxxxSourceFactory extends DefaultPropertySourceFactory {
 
 }
 ```
+```java
+// 通过 factory 来指定
+@PropertySource(value = {"classpath:family.yml"}, factory = XxxxxSourceFactory.class)
+public class Family {
+```
 
 **@****ImportResource** 导入Spring的配置文件，让配置文件里面的内容生效，例如：@ImportResource(location = {"classpath:beans.xml"})，自己写一个beans.xml 
 
